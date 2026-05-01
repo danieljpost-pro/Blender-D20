@@ -1,0 +1,269 @@
+"""
+Configuration dataclasses for the D20 renderer.
+
+All tunable parameters live here. The top-level `RenderConfig` aggregates
+sub-configs by concern (table, die, physics, camera, lighting, banner, render).
+Anything you might want to vary between runs should be a field here, not
+hard-coded elsewhere in the codebase.
+
+Design notes
+------------
+- Use `dataclasses.field(default_factory=...)` for mutable defaults (vectors,
+  dicts) to avoid the classic "shared mutable default" bug.
+- Vectors are typed as `Tuple[float, float, float]` rather than mathutils.Vector
+  so the config can be imported and inspected outside of Blender (e.g. from
+  unit tests, or from a CLI runner that hasn't yet started Blender).
+- Defaults aim for "looks reasonable on first run" — a tabletop with a
+  visible white-ish die, simple lighting, Cycles render at modest sample count.
+"""
+
+from __future__ import annotations
+
+from dataclasses import dataclass, field
+from typing import Optional, Tuple, List, Literal
+
+Vec3 = Tuple[float, float, float]
+RGBA = Tuple[float, float, float, float]
+
+
+# ----------------------------------------------------------------------------
+# Table / environment
+# ----------------------------------------------------------------------------
+
+@dataclass
+class TableConfig:
+    """The surface the die rolls on, plus optional bumper walls."""
+
+    size: Vec3 = (0.6, 0.6, 0.02)              # x, y, z extents (meters). z = thickness
+    location: Vec3 = (0.0, 0.0, 0.0)           # center of the table top surface
+    rotation_euler: Vec3 = (0.0, 0.0, 0.0)     # tilt the table if you want a slope
+    color: RGBA = (0.15, 0.35, 0.20, 1.0)      # default felt-green
+    roughness: float = 0.85
+    friction: float = 0.8                       # surface friction for the rigid body
+    restitution: float = 0.3                    # how bouncy the surface is
+    texture_path: Optional[str] = None          # optional image texture (felt, wood, etc.)
+    normal_map_path: Optional[str] = None       # optional normal map for surface detail
+
+    # Bumpers: invisible walls to keep the die in frame.
+    bumpers_enabled: bool = True
+    bumpers_height: float = 0.10                # meters above the table top
+    bumpers_visible: bool = False               # render them or just collide with them
+    bumpers_restitution: float = 0.4
+    bumpers_friction: float = 0.5
+
+
+# ----------------------------------------------------------------------------
+# The die itself
+# ----------------------------------------------------------------------------
+
+@dataclass
+class DieConfig:
+    """Geometry, material, and per-face numbering of the D20."""
+
+    # Geometry
+    size: float = 0.025                         # circumradius in meters (~25mm die)
+    bevel_amount: float = 0.0015                # rounded edges; affects look AND bounce
+    bevel_segments: int = 3
+    subdivision_levels: int = 0                 # 0 for sharp icosahedron faces
+
+    # Body material
+    body_color: RGBA = (0.95, 0.95, 0.92, 1.0)  # off-white
+    body_roughness: float = 0.35
+    body_metallic: float = 0.0
+    body_ior: float = 1.45                      # ~resin / acrylic
+    body_transmission: float = 0.0              # 0 = opaque, 1 = fully transparent (glass)
+    body_subsurface: float = 0.0                # for translucent resin look
+
+    # Number engraving
+    number_color: RGBA = (0.05, 0.05, 0.05, 1.0)  # ink color
+    number_style: Literal["decal", "inset", "raised"] = "decal"
+    number_inset_depth: float = 0.0006          # only used for inset/raised
+    font_path: Optional[str] = None             # path to .ttf/.otf; None = Blender default
+    font_scale: float = 0.55                    # fraction of face inradius
+    font_bold: bool = True
+
+    # Face value layout. Index i (0..19) maps to the number printed on the
+    # i-th face of the icosahedron mesh as Blender generates it. The pipeline
+    # will rewrite this after simulation so that the up-facing face shows the
+    # desired roll outcome.
+    face_values: List[int] = field(default_factory=lambda: list(range(1, 21)))
+
+    # Physics-only properties
+    mass: float = 0.012                          # kg (~12g, typical D20)
+    friction: float = 0.5
+    restitution: float = 0.35
+    linear_damping: float = 0.04
+    angular_damping: float = 0.10
+    collision_margin: float = 0.0002             # Bullet quirk; small but nonzero
+    collision_shape: Literal["CONVEX_HULL", "MESH"] = "CONVEX_HULL"
+
+
+# ----------------------------------------------------------------------------
+# Physics / simulation
+# ----------------------------------------------------------------------------
+
+@dataclass
+class PhysicsConfig:
+    """World-level physics and the initial throw."""
+
+    gravity: Vec3 = (0.0, 0.0, -9.81)
+    substeps_per_frame: int = 10                 # higher = more stable, slower
+    solver_iterations: int = 10
+
+    # Initial throw (the die starts mid-air, mid-tumble — see earlier discussion
+    # about avoiding awkward "settling reversed" artifacts even though we're
+    # not reversing here, a mid-air start just looks more natural anyway).
+    initial_position: Vec3 = (-0.20, 0.10, 0.15)
+    initial_rotation_euler: Vec3 = (0.5, 1.2, 0.3)
+    initial_linear_velocity: Vec3 = (1.4, -0.6, 0.2)    # m/s
+    initial_angular_velocity: Vec3 = (12.0, 8.0, 15.0)  # rad/s
+
+    # Simulation bounds
+    max_simulation_frames: int = 240             # safety cap; ~10s at 24fps
+    settle_velocity_threshold: float = 0.01      # die is "settled" when vel & ang vel below this
+    settle_required_frames: int = 8              # must stay below threshold this many frames
+
+    # Determinism
+    bake_cache: bool = True                      # bake to disk so re-renders are identical
+
+
+# ----------------------------------------------------------------------------
+# Camera
+# ----------------------------------------------------------------------------
+
+@dataclass
+class CameraConfig:
+    location: Vec3 = (0.0, -0.55, 0.45)
+    look_at: Vec3 = (0.0, 0.0, 0.02)             # aim at the table center
+    focal_length_mm: float = 50.0
+    sensor_width_mm: float = 36.0
+    dof_enabled: bool = True
+    dof_fstop: float = 2.8
+    dof_focus_object: Optional[str] = "Die"      # name of object to focus on
+    track_die: bool = False                       # if True, camera re-aims at die each frame
+
+
+# ----------------------------------------------------------------------------
+# Lighting
+# ----------------------------------------------------------------------------
+
+@dataclass
+class LightingConfig:
+    # Three-point lighting setup; any can be disabled.
+    key_enabled: bool = True
+    key_type: Literal["AREA", "SUN", "POINT", "SPOT"] = "AREA"
+    key_location: Vec3 = (0.4, -0.3, 0.6)
+    key_rotation_euler: Vec3 = (0.7, 0.3, 0.5)
+    key_color: RGBA = (1.0, 0.98, 0.95, 1.0)
+    key_energy: float = 80.0
+    key_size: float = 0.4                         # area light size
+
+    fill_enabled: bool = True
+    fill_location: Vec3 = (-0.5, -0.2, 0.4)
+    fill_color: RGBA = (0.85, 0.92, 1.0, 1.0)
+    fill_energy: float = 30.0
+
+    rim_enabled: bool = True
+    rim_location: Vec3 = (0.0, 0.5, 0.5)
+    rim_color: RGBA = (1.0, 1.0, 1.0, 1.0)
+    rim_energy: float = 50.0
+
+    # Environment
+    hdri_path: Optional[str] = None               # if set, overrides background color
+    hdri_strength: float = 1.0
+    hdri_rotation_z: float = 0.0
+    background_color: RGBA = (0.05, 0.05, 0.06, 1.0)
+
+
+# ----------------------------------------------------------------------------
+# Banner overlay ("You rolled a 20!")
+# ----------------------------------------------------------------------------
+
+@dataclass
+class BannerConfig:
+    """
+    A 2D overlay rendered via the compositor on top of the 3D scene.
+    Configured entirely separately from everything else — turn off by setting
+    `enabled = False`.
+    """
+
+    enabled: bool = True
+
+    # Content. `{value}` is substituted with the actual roll outcome.
+    text_template: str = "You rolled a {value}!"
+    font_path: Optional[str] = None
+    font_size_px: int = 96
+    text_color: RGBA = (1.0, 1.0, 1.0, 1.0)
+    outline_color: RGBA = (0.0, 0.0, 0.0, 1.0)
+    outline_width_px: int = 4
+    bold: bool = True
+
+    # Background behind the text
+    background_enabled: bool = True
+    background_color: RGBA = (0.0, 0.0, 0.0, 0.6)  # semi-transparent black
+    background_padding_px: int = 30
+    background_border_radius_px: int = 16
+
+    # Position (normalized: 0,0 = bottom-left, 1,1 = top-right)
+    anchor: Literal["top", "center", "bottom"] = "bottom"
+    horizontal_align: Literal["left", "center", "right"] = "center"
+    margin_px: int = 80                           # distance from anchor edge
+
+    # Animation
+    scroll_direction: Literal["left", "right", "up", "down", "none"] = "left"
+    scroll_duration_frames: int = 24              # frames to scroll fully into place
+    fade_in: bool = True
+    fade_duration_frames: int = 12
+    hold_frames: int = 60                         # how long it stays after arriving
+    fade_out: bool = True
+
+    # Timing — when does the banner start, relative to the simulation?
+    # "after_settle" = trigger the moment the die has come to rest.
+    # "absolute" = trigger at `trigger_frame` regardless.
+    trigger_mode: Literal["after_settle", "absolute"] = "after_settle"
+    trigger_frame_offset: int = 6                 # frames after settle to start
+    trigger_frame_absolute: int = 120             # only used if trigger_mode == "absolute"
+
+
+# ----------------------------------------------------------------------------
+# Render settings
+# ----------------------------------------------------------------------------
+
+@dataclass
+class RenderConfig:
+    engine: Literal["CYCLES", "BLENDER_EEVEE_NEXT", "BLENDER_EEVEE"] = "CYCLES"
+    resolution_x: int = 1920
+    resolution_y: int = 1080
+    fps: int = 30
+    samples: int = 128                            # Cycles samples
+    use_denoiser: bool = True
+    use_motion_blur: bool = True
+    motion_blur_shutter: float = 0.5
+    output_format: Literal["FFMPEG", "PNG"] = "FFMPEG"
+    ffmpeg_codec: str = "H264"
+    ffmpeg_quality: Literal["LOW", "MEDIUM", "HIGH", "PERC_LOSSLESS", "LOSSLESS"] = "HIGH"
+    output_dir: str = "./renders"
+
+
+# ----------------------------------------------------------------------------
+# Top-level
+# ----------------------------------------------------------------------------
+
+@dataclass
+class PipelineConfig:
+    """Top-level config — pass one of these to the pipeline."""
+    table: TableConfig = field(default_factory=TableConfig)
+    die: DieConfig = field(default_factory=DieConfig)
+    physics: PhysicsConfig = field(default_factory=PhysicsConfig)
+    camera: CameraConfig = field(default_factory=CameraConfig)
+    lighting: LightingConfig = field(default_factory=LightingConfig)
+    banner: BannerConfig = field(default_factory=BannerConfig)
+    render: RenderConfig = field(default_factory=RenderConfig)
+
+    # What outcomes to render from this simulation. e.g. [20] for a single
+    # "natural 20" video, or list(range(1, 21)) for a full set.
+    desired_outcomes: List[int] = field(default_factory=lambda: [20])
+
+    # Random seed used only for non-physics aesthetic variation (e.g. minor
+    # camera jitter, if you add it later). Bullet itself is deterministic.
+    seed: int = 42
