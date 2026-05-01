@@ -176,6 +176,55 @@ class LightingConfig:
 
 
 # ----------------------------------------------------------------------------
+# Banner audio (optional sound effect + ambience layered with the banner)
+# ----------------------------------------------------------------------------
+
+@dataclass
+class BannerAudioConfig:
+    """
+    Optional audio that plays alongside the banner. Configured independently
+    of the visual banner — you can have:
+      - banner + audio
+      - banner + no audio
+      - audio + no banner (e.g. a sting on every roll regardless of overlay)
+      - neither
+
+    Two layers, both optional and independent:
+      1. `sting`: a one-shot SFX (fanfare, "ding", crit hit sound) that fires
+         at the banner trigger frame.
+      2. `ambience`: a background loop (crowd cheer, tavern murmur, drone)
+         that plays for the duration the banner is on-screen.
+
+    Each layer can be a single file, OR a per-outcome map (e.g. play
+    "crit_hit.wav" for outcome=20, "miss.wav" for outcome=1, fall back to
+    `default_path` for everything else).
+    """
+
+    enabled: bool = False
+
+    # --- Sting (one-shot SFX) ---
+    sting_enabled: bool = True
+    sting_default_path: Optional[str] = None
+    sting_per_outcome: dict = field(default_factory=dict)  # {20: "/path/crit.wav", 1: "/path/fail.wav"}
+    sting_volume: float = 1.0
+    sting_offset_frames: int = 0          # +/- frames relative to banner trigger
+
+    # --- Ambience (background loop) ---
+    ambience_enabled: bool = False
+    ambience_default_path: Optional[str] = None
+    ambience_per_outcome: dict = field(default_factory=dict)
+    ambience_volume: float = 0.4
+    ambience_loop: bool = True
+    ambience_fade_in_frames: int = 8
+    ambience_fade_out_frames: int = 12
+    # Timing: when does ambience start/stop relative to the banner?
+    # By default, follows the banner's visible window.
+    ambience_follow_banner: bool = True
+    ambience_start_frame_absolute: Optional[int] = None  # only if follow_banner=False
+    ambience_end_frame_absolute: Optional[int] = None
+
+
+# ----------------------------------------------------------------------------
 # Banner overlay ("You rolled a 20!")
 # ----------------------------------------------------------------------------
 
@@ -258,6 +307,7 @@ class PipelineConfig:
     camera: CameraConfig = field(default_factory=CameraConfig)
     lighting: LightingConfig = field(default_factory=LightingConfig)
     banner: BannerConfig = field(default_factory=BannerConfig)
+    banner_audio: BannerAudioConfig = field(default_factory=BannerAudioConfig)
     render: RenderConfig = field(default_factory=RenderConfig)
 
     # What outcomes to render from this simulation. e.g. [20] for a single

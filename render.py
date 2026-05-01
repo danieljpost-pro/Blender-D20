@@ -11,8 +11,15 @@ import bpy
 from .config import RenderConfig
 
 
-def configure_render(cfg: RenderConfig, output_path: str) -> None:
-    """Apply RenderConfig to the current scene."""
+def configure_render(cfg: RenderConfig, output_path: str, with_audio: bool = False) -> None:
+    """Apply RenderConfig to the current scene.
+
+    Args:
+        cfg: render config.
+        output_path: filepath for the rendered video.
+        with_audio: if True, configure the FFmpeg muxer to include audio
+            (AAC). If False, audio strips in the VSE are silently dropped.
+    """
     scene = bpy.context.scene
     r = scene.render
 
@@ -46,7 +53,11 @@ def configure_render(cfg: RenderConfig, output_path: str) -> None:
         r.ffmpeg.format = "MPEG4"
         r.ffmpeg.codec = cfg.ffmpeg_codec
         r.ffmpeg.constant_rate_factor = cfg.ffmpeg_quality
-        r.ffmpeg.audio_codec = "NONE"
+        if with_audio:
+            r.ffmpeg.audio_codec = "AAC"
+            r.ffmpeg.audio_bitrate = 192
+        else:
+            r.ffmpeg.audio_codec = "NONE"
     else:
         r.image_settings.file_format = "PNG"
         r.image_settings.color_mode = "RGBA"

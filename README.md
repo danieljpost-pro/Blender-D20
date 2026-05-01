@@ -22,14 +22,15 @@ This means 20 outcome videos cost 1 simulation + 20 renders, not 20 simulations.
 
 ```
 d20_renderer/
-├── config.py     # Every tunable parameter, as dataclasses
-├── scene.py      # Table, lights, camera, world background
-├── die.py        # D20 mesh, body material, per-face text labels
-├── physics.py    # Initial throw, simulation, settle/up-face detection
-├── banner.py     # 2D compositor banner overlay (independent of 3D scene)
-├── render.py     # Render-engine settings + execution
-├── pipeline.py   # Orchestrates everything
-└── run.py        # CLI entry point
+├── config.py        # Every tunable parameter, as dataclasses
+├── scene.py         # Table, lights, camera, world background
+├── die.py           # D20 mesh, body material, per-face text labels
+├── physics.py       # Initial throw, simulation, settle/up-face detection
+├── banner.py        # 2D compositor banner overlay (independent of 3D scene)
+├── banner_audio.py  # Optional sting + ambience for the banner (VSE strips)
+├── render.py        # Render-engine settings + execution
+├── pipeline.py      # Orchestrates everything
+└── run.py           # CLI entry point
 ```
 
 ## Running
@@ -66,6 +67,20 @@ Example `my_overrides.json`:
     "enabled": true,
     "text_template": "Critical hit! ({value})",
     "scroll_direction": "left"
+  },
+  "banner_audio": {
+    "enabled": true,
+    "sting_enabled": true,
+    "sting_default_path": "/path/to/fanfare.wav",
+    "sting_per_outcome": {
+      "20": "/path/to/crit_hit.wav",
+      "1":  "/path/to/critical_fail.wav"
+    },
+    "sting_volume": 1.0,
+    "ambience_enabled": true,
+    "ambience_default_path": "/path/to/tavern_loop.ogg",
+    "ambience_volume": 0.35,
+    "ambience_loop": true
   }
 }
 ```

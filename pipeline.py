@@ -26,6 +26,7 @@ from . import scene as scene_mod
 from . import die as die_mod
 from . import physics as physics_mod
 from . import banner as banner_mod
+from . import banner_audio as banner_audio_mod
 from . import render as render_mod
 
 
@@ -62,10 +63,14 @@ def run(cfg: PipelineConfig) -> None:
     for outcome in cfg.desired_outcomes:
         die_mod.assign_outcome_to_face(die_obj, up_face_index=up_face, desired_value=outcome)
         banner_mod.setup_banner(cfg.banner, cfg.render, outcome, settle_frame)
+        has_audio = banner_audio_mod.setup_banner_audio(
+            cfg.banner_audio, cfg.banner, outcome, settle_frame, cfg.render.fps
+        )
 
         out_path = os.path.join(cfg.render.output_dir, f"d20_roll_{outcome:02d}.mp4")
-        render_mod.configure_render(cfg.render, out_path)
-        print(f"[pipeline] Rendering outcome {outcome} -> {out_path}")
+        render_mod.configure_render(cfg.render, out_path, with_audio=has_audio)
+        print(f"[pipeline] Rendering outcome {outcome} -> {out_path} "
+              f"(audio={'yes' if has_audio else 'no'})")
         render_mod.render_animation()
 
 
