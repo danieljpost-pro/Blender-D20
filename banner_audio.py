@@ -122,8 +122,14 @@ def _clear_audio_strips() -> None:
 
 
 def _resolve_audio_path(per_outcome: dict, default: Optional[str], outcome: int) -> Optional[str]:
-    """Per-outcome path takes precedence; otherwise fall back to default."""
-    candidate = per_outcome.get(outcome) if per_outcome else None
+    """Per-outcome path takes precedence; otherwise fall back to default.
+
+    Handles both int and str keys, since JSON-loaded dicts will have string keys
+    (`{"20": "..."}`) while Python-constructed configs typically have int keys.
+    """
+    candidate = None
+    if per_outcome:
+        candidate = per_outcome.get(outcome) or per_outcome.get(str(outcome))
     candidate = candidate or default
     if candidate and os.path.exists(candidate):
         return candidate

@@ -1,1 +1,42 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.venv/
+venv/
+
+# Blender
+*.blend1
+*.blend2
+*.blend@
+blendcache_*/
+*.blend.lock
+
+# Renders / outputs
+renders/
+*.mp4
+*.mkv
+*.webm
+*.png
+!docs/**/*.png
+*.jpg
+*.jpeg
+
+# Banner temp files
+/tmp/banner_*.png
+banner_*.png
+
+# OS cruft
+.DS_Store
+Thumbs.db
+
+# Editor
+.vscode/
+.idea/
+*.swp
+*.swo
 *.zip

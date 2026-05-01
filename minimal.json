@@ -1,0 +1,4 @@
+{
+  "_comment": "Minimal example. Renders a basic D20 roll showing the value 20. All other parameters use defaults from config.py.",
+  "desired_outcomes": [20]
+}

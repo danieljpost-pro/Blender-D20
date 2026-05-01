@@ -1,0 +1,37 @@
+[project]
+name = "d20-renderer"
+version = "0.1.0"
+description = "Blender-based deterministic D20 dice roll video renderer"
+requires-python = ">=3.10"
+
+# This package is meant to be run inside Blender's bundled Python interpreter
+# via `blender --background --python -m d20_renderer.run`. The dependencies
+# listed here are for tooling only — the runtime depends on `bpy` (provided
+# by Blender) and `Pillow` (installed into Blender's Python; see Makefile
+# `install-blender-deps` target).
+dependencies = []
+
+[tool.ruff]
+line-length = 100
+target-version = "py310"
+extend-exclude = ["renders/", "blendcache_*/"]
+
+[tool.ruff.lint]
+# Reasonable defaults; bpy code has unavoidable patterns (bpy.ops.*, magic
+# context state) that some linters flag. Keep the rules pragmatic.
+select = [
+    "E",    # pycodestyle errors
+    "F",    # pyflakes
+    "W",    # pycodestyle warnings
+    "I",    # isort
+    "B",    # bugbear
+    "UP",   # pyupgrade
+]
+ignore = [
+    "E501",  # line too long (we set line-length above; ruff format handles this)
+    "B008",  # function calls in defaults — dataclass field(default_factory=...) is fine
+]
+
+[tool.ruff.lint.per-file-ignores]
+# bpy operators have side effects; importing them isn't unused.
+"d20_renderer/run.py" = ["E402"]  # sys.path manipulation before imports

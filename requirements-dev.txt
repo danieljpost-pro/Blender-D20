@@ -1,0 +1,4 @@
+# Tooling for the *system* Python (lint, format, type-check the source).
+# Runtime dependencies live inside Blender's bundled Python — see Makefile
+# `install-blender-deps`.
+ruff>=0.6.0

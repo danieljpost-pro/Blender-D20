@@ -1,0 +1,28 @@
+{
+  "_comment": "Fast iteration config: low samples, Eevee, small resolution. Use this when iterating on physics/look — NOT for final renders.",
+
+  "render": {
+    "engine": "BLENDER_EEVEE_NEXT",
+    "resolution_x": 960,
+    "resolution_y": 540,
+    "samples": 16,
+    "use_denoiser": false,
+    "use_motion_blur": false,
+    "fps": 24
+  },
+
+  "physics": {
+    "max_simulation_frames": 120,
+    "substeps_per_frame": 6
+  },
+
+  "banner": {
+    "enabled": false
+  },
+
+  "banner_audio": {
+    "enabled": false
+  },
+
+  "desired_outcomes": [20]
+}
