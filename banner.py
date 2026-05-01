@@ -8,6 +8,8 @@ How it works
 ------------
 1. We pre-render the banner text to a transparent PNG using PIL (or Blender's
    text-to-image baking). The PNG has the text + outline + rounded background.
+   The PNG is content-addressed and cached, so re-rendering the same banner
+   text/styling doesn't regenerate the image.
 2. We add an Image node in the compositor pointing at that PNG.
 3. We mix it over the rendered scene using a Mix node, with the Mix factor
    keyframed to drive the fade-in / fade-out and a Translate node keyframed
@@ -27,6 +29,7 @@ from typing import TYPE_CHECKING
 import bpy
 
 from .config import BannerConfig, RenderConfig
+from . import log
 
 if TYPE_CHECKING:
     from bpy.types import Object

@@ -283,6 +283,7 @@ class RenderConfig:
     engine: Literal["CYCLES", "BLENDER_EEVEE_NEXT", "BLENDER_EEVEE"] = "CYCLES"
     resolution_x: int = 1920
     resolution_y: int = 1080
+    resolution_percentage: int = 100              # 25/50/75/100 — quick downscale lever
     fps: int = 30
     samples: int = 128                            # Cycles samples
     use_denoiser: bool = True
@@ -292,11 +293,77 @@ class RenderConfig:
     ffmpeg_codec: str = "H264"
     ffmpeg_quality: Literal["LOW", "MEDIUM", "HIGH", "PERC_LOSSLESS", "LOSSLESS"] = "HIGH"
     output_dir: str = "./renders"
+    output_filename_pattern: str = "d20_roll_{outcome:02d}"  # extension auto-appended
+
+    # --- Hardware levers ---
+    device: Literal["CPU", "GPU"] = "CPU"
+    persistent_data: bool = False                  # Cycles: keep BVH in memory between frames
+    simplify_enabled: bool = False                 # global geometry/shadow simplify
+    simplify_subdivision: int = 2                  # max subdiv level when simplify_enabled
+    tile_size: int = 2048                          # Cycles tile size
+
+    # --- Frame range overrides ---
+    # If set, only render this slice [start, end] instead of the full simulation
+    # range. Useful for previewing the settle+banner segment without re-rendering
+    # the bouncing portion.
+    frame_start_override: Optional[int] = None
+    frame_end_override: Optional[int] = None
+
+    # --- Single-frame preview mode ---
+    # If set, render exactly this one frame as a PNG (ignores output_format).
+    # Useful for sanity-checking lighting/composition cheaply.
+    single_frame: Optional[int] = None
 
 
 # ----------------------------------------------------------------------------
 # Top-level
 # ----------------------------------------------------------------------------
+
+# ----------------------------------------------------------------------------
+# Caching & incremental execution
+# ----------------------------------------------------------------------------
+
+@dataclass
+class CacheConfig:
+    """
+    Controls which pipeline stages get skipped when their inputs haven't
+    changed since the last run. Each stage hashes its relevant config inputs
+    and writes a `.cache_key` file next to its output; subsequent runs skip
+    the stage if the key matches.
+
+    Use `force_*` flags to override individual stages, or `--force-all` from
+    the CLI to bust everything.
+    """
+    enabled: bool = True
+    cache_dir: str = "./.d20_cache"
+
+    # Force flags — re-do the stage even if the cache key matches.
+    force_physics: bool = False                    # rebuild + rebake physics
+    force_banner_image: bool = False               # regenerate banner PNG
+    force_render: bool = False                     # re-render even if output exists
+
+
+@dataclass
+class LoggingConfig:
+    """Verbosity and dry-run controls."""
+    verbose: bool = False
+    quiet: bool = False                            # suppress all but warnings/errors
+    dry_run: bool = False                          # build scene + log plan, skip bake/render
+
+
+@dataclass
+class StageConfig:
+    """
+    Master switches for entire pipeline stages. These are above and beyond
+    the individual feature flags (banner.enabled, banner_audio.enabled, etc.)
+    — use these to skip whole phases of the pipeline.
+    """
+    do_simulate: bool = True                       # run + bake physics (False = use existing cache)
+    do_render: bool = True                         # render videos (False = stop after sim)
+    # If both above are False, you get a scene-build-only run, useful for
+    # opening the .blend in the GUI to inspect manually.
+
+
 
 @dataclass
 class PipelineConfig:
@@ -309,6 +376,9 @@ class PipelineConfig:
     banner: BannerConfig = field(default_factory=BannerConfig)
     banner_audio: BannerAudioConfig = field(default_factory=BannerAudioConfig)
     render: RenderConfig = field(default_factory=RenderConfig)
+    cache: CacheConfig = field(default_factory=CacheConfig)
+    logging: LoggingConfig = field(default_factory=LoggingConfig)
+    stages: StageConfig = field(default_factory=StageConfig)
 
     # What outcomes to render from this simulation. e.g. [20] for a single
     # "natural 20" video, or list(range(1, 21)) for a full set.
