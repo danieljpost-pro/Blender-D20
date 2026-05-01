@@ -17,6 +17,9 @@ Hardware-aware features:
 from __future__ import annotations
 
 import os
+import sys
+import shlex
+from datetime import datetime
 
 import bpy
 
@@ -31,8 +34,28 @@ from . import cache as cache_mod
 from . import log
 
 
+def _log_invocation(cfg: PipelineConfig) -> None:
+    """Log the full Blender command line to the configured log file."""
+    if "--" in sys.argv:
+        dash_idx = sys.argv.index("--")
+        blender_args = sys.argv[1:dash_idx]
+        script_args = sys.argv[dash_idx + 1:]
+    else:
+        blender_args = sys.argv[1:]
+        script_args = []
+
+    blender_path = sys.argv[0] if sys.argv else "blender"
+    cmd_parts = [blender_path] + blender_args + (["--"] + script_args if script_args else [])
+    full_cmd = " ".join(shlex.quote(part) for part in cmd_parts)
+
+    timestamp = datetime.now().isoformat()
+    log_msg = f"[{timestamp}] {full_cmd}"
+    log.file_log(log_msg)
+
+
 def run(cfg: PipelineConfig) -> None:
     log.configure(cfg.logging)
+    _log_invocation(cfg)
     log.info(f"Pipeline starting. Outcomes: {cfg.desired_outcomes}")
     if cfg.logging.dry_run:
         log.info("DRY-RUN MODE — no bake, no render")
@@ -46,6 +69,9 @@ def run(cfg: PipelineConfig) -> None:
     scene_mod.build_lighting(cfg.lighting)
     cam = scene_mod.build_camera(cfg.camera)
     die_obj = die_mod.build_die(cfg.die)
+    _label_children = [c for c in die_obj.children if c.name.startswith("DieLabel_")]
+    log.debug(f"pipeline.scene: die has {len(_label_children)} label children "
+              f"(names: {sorted(c.name for c in _label_children)[:5]}...)")
     if cfg.camera.dof_enabled and cfg.camera.dof_focus_object:
         focus_obj = bpy.data.objects.get(cfg.camera.dof_focus_object)
         if focus_obj is not None:

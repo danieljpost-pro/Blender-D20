@@ -20,7 +20,7 @@ EXTRA_FLAGS   ?=
 CONFIG_FLAG := $(if $(CONFIG),--config $(CONFIG),)
 
 # Common Blender invocation prefix
-BLEND := $(BLENDER) --background --python-use-system-env --python -m d20_renderer.run --
+BLEND := $(BLENDER) --background --python-use-system-env --python d20_renderer/run.py --
 
 .PHONY: help
 help:
@@ -70,7 +70,7 @@ help:
 	@echo ""
 	@echo "Use \`make render EXTRA_FLAGS='--no-motion-blur --samples 32'\` to"
 	@echo "tweak any flag not exposed as a dedicated target. See:"
-	@echo "  $(BLENDER) -b --python -m d20_renderer.run -- --help"
+	@echo "  $(BLENDER) -b --python d20_renderer/run.py -- --help"
 
 # ─── Quick iteration ─────────────────────────────────────────────────────────
 

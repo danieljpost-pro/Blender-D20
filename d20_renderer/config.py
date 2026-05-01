@@ -349,6 +349,7 @@ class LoggingConfig:
     verbose: bool = False
     quiet: bool = False                            # suppress all but warnings/errors
     dry_run: bool = False                          # build scene + log plan, skip bake/render
+    log_file: Optional[str] = None                 # path to log file for recording invocations
 
 
 @dataclass

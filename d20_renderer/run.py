@@ -156,6 +156,8 @@ def _build_parser() -> argparse.ArgumentParser:
     g_log.add_argument("--quiet", "-q", action="store_true")
     g_log.add_argument("--dry-run", action="store_true",
                        help="Build the scene, log the plan, but skip bake and render.")
+    g_log.add_argument("--log-file", type=str, default=None, metavar="PATH",
+                       help="Path to a log file where the full Blender command line will be recorded.")
 
     # --- Save the .blend for manual inspection ---
     g_log.add_argument("--save-blend", type=str, default=None, metavar="PATH",
@@ -287,6 +289,8 @@ def _apply_cli_overrides(cfg: PipelineConfig, args: argparse.Namespace) -> None:
     cfg.logging.verbose = args.verbose
     cfg.logging.quiet = args.quiet
     cfg.logging.dry_run = args.dry_run
+    if args.log_file is not None:
+        cfg.logging.log_file = args.log_file
 
 
 # ----------------------------------------------------------------------------
