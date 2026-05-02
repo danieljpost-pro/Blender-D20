@@ -100,7 +100,9 @@ def bake_simulation(cfg: PhysicsConfig) -> None:
     """Bake the rigid body cache to disk."""
     if not cfg.bake_cache:
         return
+    log.info("physics bake: starting...")
     bpy.ops.ptcache.bake_all(bake=True)
+    log.info("physics bake: complete")
 
 
 # ----------------------------------------------------------------------------

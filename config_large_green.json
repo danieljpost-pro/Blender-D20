@@ -10,8 +10,8 @@
     "resolution_x": 540,
     "resolution_y": 1080,
     "fps": 24,
-    "samples": 256,
-    "engine": "CYCLES",
+    "samples": 32,
+    "engine": "BLENDER_EEVEE_NEXT",
     "use_denoiser": false
   }
 }

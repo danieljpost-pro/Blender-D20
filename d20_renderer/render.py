@@ -109,7 +109,27 @@ def render_animation() -> None:
         return
     scene = bpy.context.scene
     is_still = scene.frame_start == scene.frame_end
-    bpy.ops.render.render(animation=not is_still, write_still=is_still)
+
+    # Add render progress callback
+    def on_render_complete(scene):
+        frame = scene.frame_current
+        total = scene.frame_end
+        pct = int((frame / total) * 100) if total > 0 else 0
+        log.info(f"frame {frame}/{total} ({pct}%)")
+
+    # Register callback (Blender 3.2+)
+    if hasattr(bpy.app.handlers, 'render_complete'):
+        bpy.app.handlers.render_complete.append(on_render_complete)
+
+    try:
+        bpy.ops.render.render(animation=not is_still, write_still=is_still)
+    finally:
+        # Unregister callback
+        if hasattr(bpy.app.handlers, 'render_complete'):
+            try:
+                bpy.app.handlers.render_complete.remove(on_render_complete)
+            except ValueError:
+                pass
 
 
 def output_extension(cfg: RenderConfig) -> str:

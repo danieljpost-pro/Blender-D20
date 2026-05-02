@@ -78,7 +78,9 @@ def run(cfg: PipelineConfig) -> None:
             cam.data.dof.focus_object = focus_obj
 
     # ---- Stage 2: Physics simulate + bake (cache-gated) ----
+    log.info("Configuring physics world...")
     physics_mod.configure_world(cfg.physics)
+    log.info("Applying initial throw...")
     physics_mod.apply_initial_throw(die_obj, cfg.physics)
 
     if not cfg.stages.do_simulate:
@@ -105,15 +107,20 @@ def run(cfg: PipelineConfig) -> None:
             and not cfg.cache.force_physics
             and cached_key == phys_key
         ):
-            log.stage("physics", f"cache HIT (key={phys_key}) — skipping bake")
+            log.stage("physics", f"cache HIT (key={phys_key}) — loading baked cache")
+            log.info("Physics cache loaded from disk")
         else:
             log.stage("physics", f"cache MISS — baking simulation (key={phys_key})")
             physics_mod.bake_simulation(cfg.physics)
             with open(phys_key_file, "w") as fh:
                 fh.write(phys_key)
+            log.info("Physics cache saved to disk")
 
     # ---- Stage 3: Settle detection ----
+    log.info("Detecting settle frame...")
     settle_frame = physics_mod.find_settle_frame(die_obj, cfg.physics)
+    log.info(f"Settle frame detected: {settle_frame}")
+    log.info("Finding up-facing face...")
     up_face = physics_mod.find_up_face(die_obj, settle_frame)
     log.info(
         f"Die settled at frame {settle_frame}, up-facing face index = {up_face} "
@@ -127,8 +134,10 @@ def run(cfg: PipelineConfig) -> None:
     # ---- Stage 4: Per-outcome render (each cache-gated) ----
     os.makedirs(cfg.render.output_dir, exist_ok=True)
     ext = render_mod.output_extension(cfg.render)
+    total_outcomes = len(cfg.desired_outcomes)
+    log.info(f"Starting render loop: {total_outcomes} outcome(s) to render")
 
-    for outcome in cfg.desired_outcomes:
+    for idx, outcome in enumerate(cfg.desired_outcomes, 1):
         filename = cfg.render.output_filename_pattern.format(outcome=outcome) + ext
         out_path = os.path.join(cfg.render.output_dir, filename)
         rkey = cache_mod.render_key(cfg, outcome)
@@ -139,27 +148,34 @@ def run(cfg: PipelineConfig) -> None:
             and cache_mod.cache_hit(out_path, rkey, force=False)
         ):
             log.stage(f"render outcome={outcome}", f"cache HIT — skipping ({out_path})")
+            log.info(f"outcome {idx}/{total_outcomes}: cache hit, skipped")
             continue
 
+        log.info(f"outcome {idx}/{total_outcomes}: relabeling die for value {outcome}...")
         # Re-label faces for this outcome
         die_mod.assign_outcome_to_face(die_obj, up_face_index=up_face, desired_value=outcome)
 
         # Banner (image potentially cached) + audio
+        log.info(f"outcome {idx}/{total_outcomes}: setting up banner...")
         banner_mod.setup_banner(cfg.banner, cfg.render, outcome, settle_frame)
+        log.info(f"outcome {idx}/{total_outcomes}: setting up audio...")
         has_audio = banner_audio_mod.setup_banner_audio(
             cfg.banner_audio, cfg.banner, outcome, settle_frame, cfg.render.fps
         )
 
         # Configure + render
+        log.info(f"outcome {idx}/{total_outcomes}: configuring render...")
         render_mod.configure_render(cfg.render, out_path, with_audio=has_audio)
         log.stage(f"render outcome={outcome}", f"rendering -> {out_path} (audio={has_audio})")
+        log.info(f"outcome {idx}/{total_outcomes}: rendering...")
         render_mod.render_animation()
+        log.info(f"outcome {idx}/{total_outcomes}: render complete")
 
         # Stamp cache key (unless dry-run)
         if not cfg.logging.dry_run:
             cache_mod.write_cache_key(out_path, rkey)
 
-    log.info("Pipeline complete.")
+    log.info("Pipeline complete. All outcomes rendered.")
 
 
 def _clear_scene() -> None:
