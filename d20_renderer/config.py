@@ -115,11 +115,11 @@ class PhysicsConfig:
     # not reversing here, a mid-air start just looks more natural anyway).
     initial_position: Vec3 = (-0.20, 0.10, 0.15)
     initial_rotation_euler: Vec3 = (0.5, 1.2, 0.3)
-    initial_linear_velocity: Vec3 = (1.4, -0.6, 0.2)    # m/s
-    initial_angular_velocity: Vec3 = (12.0, 8.0, 15.0)  # rad/s
+    initial_linear_velocity: Vec3 = (2.2, -1.0, 0.35)   # m/s (increased for more dramatic throw)
+    initial_angular_velocity: Vec3 = (20.0, 15.0, 25.0) # rad/s (increased for more tumbling)
 
     # Simulation bounds
-    max_simulation_frames: int = 240             # safety cap; ~10s at 24fps
+    max_simulation_frames: int = 360             # ~15s at 24fps for better balance of motion + settle
     settle_velocity_threshold: float = 0.01      # die is "settled" when vel & ang vel below this
     settle_required_frames: int = 8              # must stay below threshold this many frames
 
