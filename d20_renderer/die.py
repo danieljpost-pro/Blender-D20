@@ -23,6 +23,7 @@ import bmesh
 from mathutils import Vector, Matrix
 
 from .config import DieConfig
+from . import log
 
 if TYPE_CHECKING:
     from bpy.types import Object
@@ -36,9 +37,10 @@ def build_die(cfg: DieConfig) -> "Object":
     """
     die = _build_icosahedron_mesh(cfg)
     _apply_body_material(die, cfg)
-    _setup_rigid_body(die, cfg)
     labels = _build_face_labels(die, cfg)
     _apply_initial_face_values(labels, cfg.face_values)
+    _apply_bevel(die, cfg)
+    _setup_rigid_body(die, cfg)
     return die
 
 
@@ -54,24 +56,32 @@ def _build_icosahedron_mesh(cfg: DieConfig) -> "Object":
     )
     die = bpy.context.active_object
     die.name = "Die"
+    return die
 
-    # Optional bevel for rounded edges
-    if cfg.bevel_amount > 0:
-        bevel = die.modifiers.new(name="Bevel", type="BEVEL")
-        bevel.width = cfg.bevel_amount
-        bevel.segments = cfg.bevel_segments
-        bevel.limit_method = "ANGLE"
 
-    # Apply modifiers so the *physics* sees the beveled shape.
-    # (Convex hull collision won't change much with bevels, but mesh collision
-    # would, and we want consistency between visual and physical geometry.)
+def _apply_bevel(die: "Object", cfg: DieConfig) -> None:
+    """
+    Add and destructively apply a Bevel modifier.
+
+    Called *after* `_build_face_labels` so the label-creation loop iterates the
+    original 20 face polygons; once applied, the bevel adds many new strip
+    polygons (e.g. width=0.0015, segments=3 → ~140 polygons), which would
+    otherwise leak into label creation and leave most labels with empty text.
+    """
+    if cfg.bevel_amount <= 0:
+        log.debug("die.bevel: skipped (bevel_amount<=0)")
+        return
+    before = len(die.data.polygons)
+    bevel = die.modifiers.new(name="Bevel", type="BEVEL")
+    bevel.width = cfg.bevel_amount
+    bevel.segments = cfg.bevel_segments
+    bevel.limit_method = "ANGLE"
     bpy.ops.object.select_all(action="DESELECT")
     die.select_set(True)
     bpy.context.view_layer.objects.active = die
-    if cfg.bevel_amount > 0:
-        bpy.ops.object.modifier_apply(modifier="Bevel")
-
-    return die
+    bpy.ops.object.modifier_apply(modifier="Bevel")
+    log.debug(f"die.bevel: applied (width={cfg.bevel_amount}, segments={cfg.bevel_segments}); "
+              f"polygons {before} -> {len(die.data.polygons)}")
 
 
 # ----------------------------------------------------------------------------
@@ -152,6 +162,7 @@ def _build_face_labels(die: "Object", cfg: DieConfig) -> List["Object"]:
     """
     labels: List["Object"] = []
     faces = get_face_centers_and_normals(die)
+    log.debug(f"die.labels: building labels for {len(faces)} face polygons (expect 20)")
     inradius = _icosahedron_inradius(cfg.size)
     text_height = cfg.font_scale * inradius
     # Lift labels just slightly off the surface so they don't z-fight
@@ -247,20 +258,26 @@ def assign_outcome_to_face(die: "Object", up_face_index: int, desired_value: int
     }
     # Build map: face_index -> current text value (int)
     current = {idx: int(lbl.data.body) for idx, lbl in labels_by_face.items()}
+    log.debug(f"die.assign_outcome: up_face={up_face_index}, desired={desired_value}, "
+              f"labels_by_face has {len(labels_by_face)} entries; current={current}")
 
     # Identify the face that currently shows `desired_value`
     src_face = next(idx for idx, v in current.items() if v == desired_value)
 
-    # Find opposite-face partners by matching negated normals
+    # Find opposite-face partners by matching negated normals.
+    # Only consider the original 20 icosphere faces (0-19), not the post-bevel polygons.
     faces = get_face_centers_and_normals(die)
-    normals = {idx: n for idx, _, n in faces}
+    normals = {idx: n for idx, _, n in faces if idx in labels_by_face}
     opposite = _build_opposite_face_map(normals)
 
     # Swap the up-face's value with the desired-value-face's value...
     a, b = up_face_index, src_face
+    a_opp, b_opp = opposite[a], opposite[b]
+    log.debug(f"die.assign_outcome: swap a={a}<->b={b}; opposites a_opp={a_opp}, b_opp={b_opp}; "
+              f"opposite map has {len(opposite)} entries (face indices range "
+              f"{min(opposite)}..{max(opposite)})")
     current[a], current[b] = current[b], current[a]
     # ...and do the same swap on their opposites, preserving sum-to-21.
-    a_opp, b_opp = opposite[a], opposite[b]
     current[a_opp], current[b_opp] = current[b_opp], current[a_opp]
 
     # Write back

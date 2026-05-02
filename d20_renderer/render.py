@@ -27,6 +27,11 @@ def configure_render(cfg: RenderConfig, output_path: str, with_audio: bool = Fal
     scene = bpy.context.scene
     r = scene.render
 
+    log.debug(f"render.configure: engine={cfg.engine}, device={cfg.device}, samples={cfg.samples}, "
+              f"res={cfg.resolution_x}x{cfg.resolution_y}@{cfg.resolution_percentage}%, "
+              f"fps={cfg.fps}, format={cfg.output_format}, denoiser={cfg.use_denoiser}, "
+              f"audio={with_audio}, output={output_path}")
+
     # --- Engine ---
     r.engine = cfg.engine
 

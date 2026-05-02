@@ -16,6 +16,7 @@ from mathutils import Vector, Euler
 
 from .config import PhysicsConfig
 from .die import get_face_centers_and_normals
+from . import log
 
 if TYPE_CHECKING:
     from bpy.types import Object
@@ -71,6 +72,9 @@ def apply_initial_throw(die: "Object", cfg: PhysicsConfig) -> None:
     # position so the solver picks up the implied velocity.
     fps = scene.render.fps
     dt = 1.0 / fps
+    log.debug(f"physics.throw: pos={cfg.initial_position}, rot={cfg.initial_rotation_euler}, "
+              f"linear_v={cfg.initial_linear_velocity}, angular_v={cfg.initial_angular_velocity}, "
+              f"fps={fps}, dt={dt:.4f}")
     next_pos = Vector(cfg.initial_position) + Vector(cfg.initial_linear_velocity) * dt
     # We need the die kinematic for frame 1 -> 2 to drive it, then release.
     rb = die.rigid_body
@@ -142,7 +146,12 @@ def find_settle_frame(die: "Object", cfg: PhysicsConfig) -> int:
 
     if settle_frame is None:
         # Fallback: assume settled at the end of the cap
+        log.debug(f"physics.settle: never reached threshold={threshold} for {required} consec frames; "
+                  f"falling back to max_simulation_frames={cfg.max_simulation_frames}")
         settle_frame = cfg.max_simulation_frames
+    else:
+        log.debug(f"physics.settle: settled at frame {settle_frame} "
+                  f"(threshold={threshold}, required_streak={required})")
     return settle_frame
 
 
@@ -157,10 +166,16 @@ def find_up_face(die: "Object", at_frame: int) -> int:
     rot_3x3 = die.matrix_world.to_3x3()
     best_idx = -1
     best_dot = -2.0
+    candidates: list = []
     for face_idx, _center, normal_local in get_face_centers_and_normals(die):
         world_normal = rot_3x3 @ normal_local
         d = world_normal.z
+        candidates.append((face_idx, d))
         if d > best_dot:
             best_dot = d
             best_idx = face_idx
+    candidates.sort(key=lambda x: x[1], reverse=True)
+    log.debug(f"physics.up_face@frame{at_frame}: scanned {len(candidates)} faces; "
+              f"top 3 (idx, +Z dot) = {[(i, round(d, 4)) for i, d in candidates[:3]]}; "
+              f"picked face={best_idx}")
     return best_idx

@@ -286,7 +286,7 @@ class RenderConfig:
     resolution_percentage: int = 100              # 25/50/75/100 — quick downscale lever
     fps: int = 30
     samples: int = 128                            # Cycles samples
-    use_denoiser: bool = True
+    use_denoiser: bool = False                    # bundled Blender lacks OIDN support
     use_motion_blur: bool = True
     motion_blur_shutter: float = 0.5
     output_format: Literal["FFMPEG", "PNG"] = "FFMPEG"
