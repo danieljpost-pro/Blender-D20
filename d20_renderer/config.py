@@ -113,7 +113,7 @@ class PhysicsConfig:
     # Initial throw (the die starts mid-air, mid-tumble — see earlier discussion
     # about avoiding awkward "settling reversed" artifacts even though we're
     # not reversing here, a mid-air start just looks more natural anyway).
-    initial_position: Vec3 = (-0.20, 0.10, 0.15)
+    initial_position: Vec3 = (0.0, 0.0, 0.15)  # centered above table
     initial_rotation_euler: Vec3 = (0.5, 1.2, 0.3)
     initial_linear_velocity: Vec3 = (2.2, -1.0, 0.35)   # m/s (increased for more dramatic throw)
     initial_angular_velocity: Vec3 = (20.0, 15.0, 25.0) # rad/s (increased for more tumbling)
@@ -133,9 +133,9 @@ class PhysicsConfig:
 
 @dataclass
 class CameraConfig:
-    location: Vec3 = (0.0, -0.55, 0.45)
-    look_at: Vec3 = (0.0, 0.0, 0.02)             # aim at the table center
-    focal_length_mm: float = 50.0
+    location: Vec3 = (0.0, -0.32, 0.12)
+    look_at: Vec3 = (0.0, 0.05, 0.07)            # aim at die action area
+    focal_length_mm: float = 35.0  # wider lens for better framing
     sensor_width_mm: float = 36.0
     dof_enabled: bool = True
     dof_fstop: float = 2.8
