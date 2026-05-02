@@ -18,6 +18,7 @@ blendcache_*/
 
 # Renders / outputs
 renders/
+renders_large/
 *.mp4
 *.mkv
 *.webm
@@ -25,6 +26,7 @@ renders/
 !docs/**/*.png
 *.jpg
 *.jpeg
+render.log
 
 # Banner temp files
 /tmp/banner_*.png
