@@ -68,10 +68,14 @@ def run(cfg: PipelineConfig) -> None:
     scene_mod.build_table(cfg.table)
     scene_mod.build_lighting(cfg.lighting)
     cam = scene_mod.build_camera(cfg.camera)
-    die_obj = die_mod.build_die(cfg.die)
+
+    # Create a single die with labels for both physics and rendering
+    log.debug("pipeline.scene: building die (with labels)")
+    die_obj = die_mod.build_die(cfg.die, with_labels=True)
+
     _label_children = [c for c in die_obj.children if c.name.startswith("DieLabel_")]
-    log.debug(f"pipeline.scene: die has {len(_label_children)} label children "
-              f"(names: {sorted(c.name for c in _label_children)[:5]}...)")
+    log.debug(f"pipeline.scene: die has {len(_label_children)} label children")
+
     if cfg.camera.dof_enabled and cfg.camera.dof_focus_object:
         focus_obj = bpy.data.objects.get(cfg.camera.dof_focus_object)
         if focus_obj is not None:
@@ -122,9 +126,14 @@ def run(cfg: PipelineConfig) -> None:
     log.info(f"Settle frame detected: {settle_frame}")
     log.info("Finding up-facing face...")
     up_face = physics_mod.find_up_face(die_obj, settle_frame)
+    up_label = next(
+        (c for c in die_obj.children if c.name == f"DieLabel_{up_face:02d}"),
+        None,
+    )
+    up_label_text = up_label.data.body if up_label is not None else "?"
     log.info(
         f"Die settled at frame {settle_frame}, up-facing face index = {up_face} "
-        f"(currently shows '{die_obj.children[up_face].data.body}')"
+        f"(currently shows '{up_label_text}')"
     )
 
     if not cfg.stages.do_render:
@@ -152,7 +161,6 @@ def run(cfg: PipelineConfig) -> None:
             continue
 
         log.info(f"outcome {idx}/{total_outcomes}: relabeling die for value {outcome}...")
-        # Re-label faces for this outcome
         die_mod.assign_outcome_to_face(die_obj, up_face_index=up_face, desired_value=outcome)
 
         # Banner (image potentially cached) + audio

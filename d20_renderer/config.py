@@ -76,6 +76,7 @@ class DieConfig:
 
     # Number engraving
     number_color: RGBA = (0.05, 0.05, 0.05, 1.0)  # ink color
+    number_roughness: float = 0.95                # matte finish; high = non-reflective
     number_style: Literal["decal", "inset", "raised"] = "decal"
     number_inset_depth: float = 0.0006          # only used for inset/raised
     font_path: Optional[str] = None             # path to .ttf/.otf; None = Blender default

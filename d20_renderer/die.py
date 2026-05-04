@@ -20,7 +20,9 @@ from typing import TYPE_CHECKING, List, Tuple
 
 import bpy
 import bmesh
-from mathutils import Vector, Matrix
+import math
+
+from mathutils import Vector, Quaternion
 
 from .config import DieConfig
 from . import log
@@ -29,16 +31,18 @@ if TYPE_CHECKING:
     from bpy.types import Object
 
 
-def build_die(cfg: DieConfig) -> "Object":
+def build_die(cfg: DieConfig, with_labels: bool = True) -> "Object":
     """
-    Build a D20 (icosahedron) with rounded edges, a body material, and
-    20 child text labels (one per face). Returns the die object; labels are
-    accessible as `die.children` and can be looked up by name.
+    Build a D20 (icosahedron) with rounded edges and a body material.
+    If with_labels=True, also add 20 child text labels (one per face with fixed numbers).
+    If with_labels=False, create an unlabeled die for physics simulation.
+    Returns the die object; labels are accessible as `die.children` if they exist.
     """
     die = _build_icosahedron_mesh(cfg)
     _apply_body_material(die, cfg)
-    labels = _build_face_labels(die, cfg)
-    _apply_initial_face_values(labels, cfg.face_values)
+    if with_labels:
+        labels = _build_face_labels(die, cfg)
+        _apply_initial_face_values(labels, cfg.face_values)
     _apply_bevel(die, cfg)
     _setup_rigid_body(die, cfg)
     return die
@@ -197,7 +201,7 @@ def _build_face_labels(die: "Object", cfg: DieConfig) -> List["Object"]:
         mat.use_nodes = True
         bsdf = mat.node_tree.nodes["Principled BSDF"]
         bsdf.inputs["Base Color"].default_value = cfg.number_color
-        bsdf.inputs["Roughness"].default_value = 0.6
+        bsdf.inputs["Roughness"].default_value = cfg.number_roughness
         txt.data.materials.append(mat)
 
         # Convert text to mesh? Keeping as text is fine — Blender renders it
@@ -240,64 +244,115 @@ def _apply_initial_face_values(labels: List["Object"], values: List[int]) -> Non
 
 def assign_outcome_to_face(die: "Object", up_face_index: int, desired_value: int) -> None:
     """
-    Re-label the faces so that the face at `up_face_index` shows `desired_value`,
-    while preserving the standard D20 property that opposite faces sum to 21.
+    Re-label every face so the face at `up_face_index` shows `desired_value`,
+    by applying an icosahedral-symmetry rotation to the entire labeling.
 
-    We do this by finding the current label that says `desired_value` and the
-    one currently on the up face, then swapping their text bodies. We also swap
-    their *opposite* faces' labels so the sum-to-21 invariant holds.
+    Concretely: find an element R of the icosahedral rotation group that maps
+    the face currently showing `desired_value` onto `up_face_index`. The R-image
+    of every face determines where each label moves. Because R is a true symmetry
+    of the icosahedron, every face adjacency is preserved — the resulting
+    layout is a valid D20, just rotated from the canonical arrangement.
 
-    Caveat: this assumes the icosahedron mesh's face indices come in opposite
-    pairs we can identify by negated normals — which they do for the default
-    Blender icosphere, but verify in your version.
+    A naive pair-swap (which is what this used to do) puts the right number on
+    top but breaks the magic adjacency pattern, so adjacent faces end up with
+    relationships that don't occur on a real D20.
     """
     labels_by_face = {
         int(c.name.split("_")[1]): c
         for c in die.children
         if c.name.startswith("DieLabel_")
     }
-    # Build map: face_index -> current text value (int)
     current = {idx: int(lbl.data.body) for idx, lbl in labels_by_face.items()}
-    log.debug(f"die.assign_outcome: up_face={up_face_index}, desired={desired_value}, "
-              f"labels_by_face has {len(labels_by_face)} entries; current={current}")
 
-    # Identify the face that currently shows `desired_value`
     src_face = next(idx for idx, v in current.items() if v == desired_value)
+    log.debug(
+        f"die.assign_outcome: up_face={up_face_index}, desired={desired_value}, "
+        f"src_face (face currently showing {desired_value})={src_face}"
+    )
 
-    # Find opposite-face partners by matching negated normals.
-    # Only consider the original 20 icosphere faces (0-19), not the post-bevel polygons.
+    if src_face == up_face_index:
+        log.debug("die.assign_outcome: up face already shows desired value; no relabel")
+        return
+
     faces = get_face_centers_and_normals(die)
+    # Restrict to the original 20 icosphere faces; the bevel adds extra polygons
+    # at indices >= 20 that aren't part of the symmetry group.
     normals = {idx: n for idx, _, n in faces if idx in labels_by_face}
-    opposite = _build_opposite_face_map(normals)
 
-    # Swap the up-face's value with the desired-value-face's value...
-    a, b = up_face_index, src_face
-    a_opp, b_opp = opposite[a], opposite[b]
-    log.debug(f"die.assign_outcome: swap a={a}<->b={b}; opposites a_opp={a_opp}, b_opp={b_opp}; "
-              f"opposite map has {len(opposite)} entries (face indices range "
-              f"{min(opposite)}..{max(opposite)})")
-    current[a], current[b] = current[b], current[a]
-    # ...and do the same swap on their opposites, preserving sum-to-21.
-    current[a_opp], current[b_opp] = current[b_opp], current[a_opp]
+    permutation = _icosahedral_permutation(normals, src_face, up_face_index)
+    if permutation is None:
+        log.warn(
+            f"die.assign_outcome: no icosahedral symmetry found mapping "
+            f"face {src_face} -> {up_face_index}; labels unchanged"
+        )
+        return
 
-    # Write back
-    for idx, value in current.items():
-        labels_by_face[idx].data.body = str(value)
+    # permutation[old] = new  ⇒  label that was on `old` should now sit on `new`.
+    new_labels = {new: current[old] for old, new in permutation.items()}
+
+    log.debug(
+        f"die.assign_outcome: permutation places {new_labels[up_face_index]} "
+        f"on up face {up_face_index} (expected {desired_value})"
+    )
+
+    for idx, val in new_labels.items():
+        labels_by_face[idx].data.body = str(val)
 
 
-def _build_opposite_face_map(normals: dict) -> dict:
-    """For each face index, find the face whose normal is most opposite."""
-    opposite = {}
-    items = list(normals.items())
-    for i, (idx_a, n_a) in enumerate(items):
-        best_idx = None
-        best_dot = 1.0
-        for idx_b, n_b in items:
-            if idx_b == idx_a:
-                continue
-            d = n_a.dot(n_b)
-            if d < best_dot:
-                best_dot = d
-                best_idx = idx_b
-        opposite[idx_a] = best_idx
-    return opposite
+def _icosahedral_permutation(
+    normals: dict, src_idx: int, dst_idx: int, n_angles: int = 720, err_tol: float = 0.1
+) -> dict | None:
+    """
+    Find the face-index permutation produced by an icosahedral rotation that
+    maps `src_idx` onto `dst_idx`.
+
+    Strategy: any rotation taking n_src to n_dst can be written as
+    R = twist(θ, n_dst) ∘ Q_align, where Q_align is the shortest-arc rotation
+    between the two normals. The 3 elements of the icosahedral group that map
+    src→dst correspond to 3 specific values of θ (120° apart, with a per-pair
+    offset that depends on geometry). We sweep θ over `n_angles` discretized
+    values; an icosahedral rotation is detected when applying R to all 20 face
+    normals lands every one of them onto a unique target normal within `err_tol`.
+    """
+    n_src = normals[src_idx]
+    n_dst = normals[dst_idx]
+    q_align = n_src.rotation_difference(n_dst)
+
+    best_perm = None
+    best_err = float("inf")
+    best_bij_perm = None
+    best_bij_err = float("inf")
+    for i in range(n_angles):
+        theta = 2.0 * math.pi * i / n_angles
+        rot = Quaternion(n_dst, theta) @ q_align
+
+        perm: dict = {}
+        used: set = set()
+        max_err = 0.0
+        bijective = True
+        for old_idx, n_old in normals.items():
+            n_new = rot @ n_old
+            target = max(normals.keys(), key=lambda j: normals[j].dot(n_new))
+            err = (normals[target] - n_new).length
+            if err > max_err:
+                max_err = err
+            if target in used:
+                bijective = False
+                break
+            used.add(target)
+            perm[old_idx] = target
+
+        if bijective and perm.get(src_idx) == dst_idx:
+            if max_err < best_bij_err:
+                best_bij_err = max_err
+                best_bij_perm = perm
+            if max_err < err_tol and max_err < best_err:
+                best_perm = perm
+                best_err = max_err
+
+    if best_perm is None:
+        log.debug(
+            f"die._icosahedral_permutation: no rotation under err_tol={err_tol}; "
+            f"best bijective candidate had max_err={best_bij_err:.4f}"
+        )
+    return best_perm
