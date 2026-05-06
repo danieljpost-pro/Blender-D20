@@ -124,14 +124,74 @@ def _render_banner_png(
 # Compositor graph
 # ----------------------------------------------------------------------------
 
+def _get_compositor_tree(scene):
+    """Return scene's compositor NodeTree, creating it if needed.
+
+    Blender 4.x exposes the compositor tree as `scene.node_tree` (after enabling
+    `use_nodes`). Blender 5.x removed that attribute and instead stores it as a
+    standalone `bpy.data.node_groups` datablock referenced by
+    `scene.compositing_node_group`.
+    """
+    scene.use_nodes = True
+    if hasattr(scene, "node_tree") and scene.node_tree is not None:
+        return scene.node_tree
+    tree = scene.compositing_node_group
+    if tree is None:
+        tree = bpy.data.node_groups.new(name="D20_Compositor", type="CompositorNodeTree")
+        scene.compositing_node_group = tree
+    return tree
+
+
+def _alpha_over_socket(node, role: str):
+    """Return the AlphaOver input socket for `role` ('factor'/'background'/'foreground').
+
+    Blender 4 used positional sockets [Fac, Image, Image]; Blender 5 renamed
+    them to Factor/Background/Foreground (with Background first).
+    """
+    name_map = {
+        "factor": ("Factor", "Fac"),
+        "background": ("Background",),
+        "foreground": ("Foreground",),
+    }
+    for name in name_map[role]:
+        sock = node.inputs.get(name)
+        if sock is not None:
+            return sock
+    # Blender 4 positional fallback.
+    fallback_idx = {"factor": 0, "background": 1, "foreground": 2}[role]
+    return node.inputs[fallback_idx]
+
+
+def _new_composite_sink(tree):
+    """Add a composite output sink to `tree` and return its Image input socket.
+
+    Blender 4.x uses `CompositorNodeComposite`. Blender 5.x replaced this with
+    a NodeGroupOutput on the compositor node group, requiring an Image socket
+    on the group's interface.
+    """
+    try:
+        node = tree.nodes.new("CompositorNodeComposite")
+        return node.inputs["Image"]
+    except RuntimeError:
+        # Blender 5.x — build a group output instead.
+        if not any(
+            getattr(item, "in_out", None) == "OUTPUT" and item.name == "Image"
+            for item in tree.interface.items_tree
+        ):
+            tree.interface.new_socket(
+                name="Image", in_out="OUTPUT", socket_type="NodeSocketColor"
+            )
+        node = tree.nodes.new("NodeGroupOutput")
+        return node.inputs["Image"]
+
+
 def _setup_passthrough_compositor() -> None:
     scene = bpy.context.scene
-    scene.use_nodes = True
-    tree = scene.node_tree
+    tree = _get_compositor_tree(scene)
     tree.nodes.clear()
     rl = tree.nodes.new("CompositorNodeRLayers")
-    comp = tree.nodes.new("CompositorNodeComposite")
-    tree.links.new(rl.outputs["Image"], comp.inputs["Image"])
+    sink = _new_composite_sink(tree)
+    tree.links.new(rl.outputs["Image"], sink)
 
 
 def _build_compositor_graph(
@@ -141,12 +201,11 @@ def _build_compositor_graph(
     settle_frame: int,
 ) -> None:
     scene = bpy.context.scene
-    scene.use_nodes = True
-    tree = scene.node_tree
+    tree = _get_compositor_tree(scene)
     tree.nodes.clear()
 
     rl = tree.nodes.new("CompositorNodeRLayers")
-    comp = tree.nodes.new("CompositorNodeComposite")
+    composite_sink = _new_composite_sink(tree)
 
     # Load banner image
     img = bpy.data.images.load(banner_png_path, check_existing=True)
@@ -156,15 +215,20 @@ def _build_compositor_graph(
     # Translate node for scroll animation
     translate = tree.nodes.new("CompositorNodeTranslate")
 
-    # Alpha-over for compositing the banner on top of the render
+    # Alpha-over for compositing the banner on top of the render.
+    # Blender 4.x sockets: [Fac(0), Image-bg(1), Image-fg(2)].
+    # Blender 5.x sockets: Background, Foreground, Factor (named).
     alpha_over = tree.nodes.new("CompositorNodeAlphaOver")
-    alpha_over.inputs[0].default_value = 1.0  # Fac, will be animated for fade
+    ao_factor = _alpha_over_socket(alpha_over, "factor")
+    ao_bg = _alpha_over_socket(alpha_over, "background")
+    ao_fg = _alpha_over_socket(alpha_over, "foreground")
+    ao_factor.default_value = 1.0  # animated for fade
 
-    # Wire: render -> alpha_over.image1; banner -> translate -> alpha_over.image2
-    tree.links.new(rl.outputs["Image"], alpha_over.inputs[1])
+    # Wire: render -> alpha_over.bg; banner -> translate -> alpha_over.fg
+    tree.links.new(rl.outputs["Image"], ao_bg)
     tree.links.new(img_node.outputs["Image"], translate.inputs["Image"])
-    tree.links.new(translate.outputs["Image"], alpha_over.inputs[2])
-    tree.links.new(alpha_over.outputs["Image"], comp.inputs["Image"])
+    tree.links.new(translate.outputs["Image"], ao_fg)
+    tree.links.new(alpha_over.outputs["Image"], composite_sink)
 
     # Animate translate (scroll) and alpha_over factor (fade)
     _animate_banner(
@@ -240,7 +304,7 @@ def _animate_banner(
     translate_node.inputs["Y"].keyframe_insert(data_path="default_value", frame=arrive_f)
 
     # Fade keyframes (alpha_over Fac: 0 = banner invisible, 1 = banner fully visible)
-    fac = alpha_over_node.inputs[0]
+    fac = _alpha_over_socket(alpha_over_node, "factor")
     fac.default_value = 0.0
     fac.keyframe_insert(data_path="default_value", frame=trigger_f - 1)
 

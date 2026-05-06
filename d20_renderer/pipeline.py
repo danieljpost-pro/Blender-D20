@@ -136,6 +136,26 @@ def run(cfg: PipelineConfig) -> None:
         f"(currently shows '{up_label_text}')"
     )
 
+    # ---- Stage 3.5: Post-settle camera orbit ----
+    # Smoothly move the camera to a top-down close-up of the up face. Also
+    # clip the rendered range so we don't render hundreds of motionless frames
+    # past the orbit's hold tail.
+    if cfg.camera.orbit_enabled:
+        bpy.context.scene.frame_set(settle_frame)
+        from .die import get_labelled_face_normals
+        local_n = get_labelled_face_normals(die_obj)[up_face]
+        world_up = die_obj.matrix_world.to_3x3() @ local_n
+        orbit_end = scene_mod.animate_camera_orbit(
+            cam, die_obj, settle_frame, world_up, cfg.camera
+        )
+        new_end = max(bpy.context.scene.frame_start, orbit_end)
+        if new_end < bpy.context.scene.frame_end:
+            log.info(
+                f"camera.orbit: clipping render frame_end "
+                f"{bpy.context.scene.frame_end} -> {new_end}"
+            )
+            bpy.context.scene.frame_end = new_end
+
     if not cfg.stages.do_render:
         log.stage("render", "SKIPPED (stages.do_render=False)")
         return

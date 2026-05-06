@@ -157,6 +157,32 @@ def get_face_centers_and_normals(die: "Object") -> List[Tuple[int, Vector, Vecto
     return out
 
 
+def get_labelled_face_normals(die: "Object") -> dict:
+    """
+    Return {face_index: outward_normal_local} for each labelled face, deriving
+    the normal from the parented label's local position relative to the die's
+    origin.
+
+    Why not read polygon normals directly? After the bevel modifier is applied
+    (`modifier_apply`), polygon indices in the mesh are reshuffled — indices
+    0-19 are no longer the original 20 face polygons. Labels are created
+    *before* the bevel and parented to the die, so each label preserves the
+    pre-bevel face center even after the mesh changes. Their direction from
+    the die's local origin is the original face's outward normal.
+    """
+    out: dict = {}
+    for child in die.children:
+        if not child.name.startswith("DieLabel_"):
+            continue
+        face_idx = int(child.name.split("_")[1])
+        # `matrix_local` is the label's transform in die-local space; its
+        # translation is the label position before the parent transform applies.
+        local_pos = child.matrix_local.translation
+        n = local_pos.normalized()
+        out[face_idx] = n
+    return out
+
+
 def _build_face_labels(die: "Object", cfg: DieConfig) -> List["Object"]:
     """
     Create one text object per face, positioned just above the face center
@@ -274,10 +300,10 @@ def assign_outcome_to_face(die: "Object", up_face_index: int, desired_value: int
         log.debug("die.assign_outcome: up face already shows desired value; no relabel")
         return
 
-    faces = get_face_centers_and_normals(die)
-    # Restrict to the original 20 icosphere faces; the bevel adds extra polygons
-    # at indices >= 20 that aren't part of the symmetry group.
-    normals = {idx: n for idx, _, n in faces if idx in labels_by_face}
+    # Use label-derived outward normals: after `modifier_apply` on the bevel,
+    # polygon indices are reshuffled and `polygons[0:20]` no longer maps to the
+    # 20 original faces. Labels were attached pre-bevel and survive intact.
+    normals = get_labelled_face_normals(die)
 
     permutation = _icosahedral_permutation(normals, src_face, up_face_index)
     if permutation is None:

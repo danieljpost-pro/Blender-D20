@@ -159,12 +159,17 @@ def find_settle_frame(die: "Object", cfg: PhysicsConfig) -> int:
 
 def find_up_face(die: "Object", at_frame: int) -> int:
     """
-    Return the polygon index of the face whose world-space normal is most
-    aligned with +Z at the given frame — i.e. the face on top of the settled
-    die. Restricted to the original 20 icosphere face polygons (indices 0-19);
-    the bevel adds extra polygons at higher indices that aren't labelled and
-    can occasionally tie with the true up face on dot product.
+    Return the face_index of the labelled face whose world-space outward
+    normal is most aligned with +Z at the given frame — i.e. the face on top
+    of the settled die.
+
+    Source of truth is the parented labels, not the post-bevel mesh polygons:
+    `modifier_apply` on the bevel reshuffles polygon indices so `polygons[i]`
+    no longer corresponds to the original face i. Labels are positioned at
+    the original face centers pre-bevel and survive the modifier intact.
     """
+    from .die import get_labelled_face_normals
+
     scene = bpy.context.scene
     scene.frame_set(at_frame)
 
@@ -172,9 +177,7 @@ def find_up_face(die: "Object", at_frame: int) -> int:
     best_idx = -1
     best_dot = -2.0
     candidates: list = []
-    for face_idx, _center, normal_local in get_face_centers_and_normals(die):
-        if face_idx >= 20:
-            continue
+    for face_idx, normal_local in get_labelled_face_normals(die).items():
         world_normal = rot_3x3 @ normal_local
         d = world_normal.z
         candidates.append((face_idx, d))

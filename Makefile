@@ -202,6 +202,5 @@ install-deps:
 
 .PHONY: install-blender-deps
 install-blender-deps:
-	@echo "Installing Pillow into Blender's bundled Python..."
-	$(BLENDER) --background --python-use-system-env --python-expr \
-		"import subprocess, sys; subprocess.check_call([sys.executable, '-m', 'pip', 'install', 'Pillow'])"
+	@echo "Ensuring Pillow is importable from Blender's Python..."
+	$(BLENDER) --background --python-use-system-env --python scripts/install_blender_deps.py

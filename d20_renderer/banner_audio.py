@@ -110,12 +110,19 @@ def _ensure_sequence_editor():
     return scene.sequence_editor
 
 
+def _vse_strips(seq_editor):
+    """Return the strip collection. Blender 4.4+ renamed `sequences` -> `strips`."""
+    if hasattr(seq_editor, "strips"):
+        return seq_editor.strips
+    return seq_editor.sequences
+
+
 def _clear_audio_strips() -> None:
     """Remove any sound strips left over from a previous render."""
     scene = bpy.context.scene
     if scene.sequence_editor is None:
         return
-    seqs = scene.sequence_editor.sequences
+    seqs = _vse_strips(scene.sequence_editor)
     to_remove = [s for s in seqs if s.type == "SOUND"]
     for s in to_remove:
         seqs.remove(s)
@@ -159,7 +166,7 @@ def _compute_banner_end_frame(banner_cfg: BannerConfig, trigger_frame: int) -> i
 
 def _add_sting(seq_editor, path: str, frame: int, volume: float) -> None:
     """Add a one-shot sound strip at `frame`."""
-    strip = seq_editor.sequences.new_sound(
+    strip = _vse_strips(seq_editor).new_sound(
         name="BannerSting",
         filepath=path,
         channel=2,
@@ -183,7 +190,7 @@ def _add_ambience(
     Add a looping ambience strip from `start_frame` to `end_frame`, with
     keyframed volume fades at each end.
     """
-    strip = seq_editor.sequences.new_sound(
+    strip = _vse_strips(seq_editor).new_sound(
         name="BannerAmbience",
         filepath=path,
         channel=3,

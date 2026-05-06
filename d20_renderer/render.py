@@ -33,7 +33,20 @@ def configure_render(cfg: RenderConfig, output_path: str, with_audio: bool = Fal
               f"audio={with_audio}, output={output_path}")
 
     # --- Engine ---
-    r.engine = cfg.engine
+    # Blender 4.x exposes the new EEVEE as `BLENDER_EEVEE_NEXT` alongside the
+    # legacy `BLENDER_EEVEE`. Blender 5.x removed legacy EEVEE and renamed the
+    # new engine back to `BLENDER_EEVEE`. Translate so the same config works on
+    # both.
+    valid_engines = r.bl_rna.properties["engine"].enum_items.keys()
+    requested = cfg.engine
+    if requested not in valid_engines:
+        if requested == "BLENDER_EEVEE_NEXT" and "BLENDER_EEVEE" in valid_engines:
+            log.debug("render.engine: BLENDER_EEVEE_NEXT not available; using BLENDER_EEVEE (Blender 5+)")
+            requested = "BLENDER_EEVEE"
+        elif requested == "BLENDER_EEVEE" and "BLENDER_EEVEE_NEXT" in valid_engines:
+            log.debug("render.engine: legacy BLENDER_EEVEE; using BLENDER_EEVEE_NEXT (Blender 4.2+)")
+            requested = "BLENDER_EEVEE_NEXT"
+    r.engine = requested
 
     # --- Resolution ---
     r.resolution_x = cfg.resolution_x
@@ -64,7 +77,10 @@ def configure_render(cfg: RenderConfig, output_path: str, with_audio: bool = Fal
     # --- Motion blur ---
     r.use_motion_blur = cfg.use_motion_blur
     if cfg.use_motion_blur and cfg.engine == "CYCLES":
-        scene.cycles.motion_blur_position = "CENTER"
+        # Blender 5 removed `cycles.motion_blur_position`; the setting moved to
+        # the render settings (and is unconditionally CENTER in newer builds).
+        if hasattr(scene.cycles, "motion_blur_position"):
+            scene.cycles.motion_blur_position = "CENTER"
         r.motion_blur_shutter = cfg.motion_blur_shutter
 
     # --- Frame range override ---
@@ -72,6 +88,7 @@ def configure_render(cfg: RenderConfig, output_path: str, with_audio: bool = Fal
     if cfg.single_frame is not None:
         scene.frame_start = cfg.single_frame
         scene.frame_end = cfg.single_frame
+        scene.frame_current = cfg.single_frame  # bpy.ops.render.render(write_still=True) renders frame_current
         log.debug(f"single_frame mode: rendering frame {cfg.single_frame} only")
     else:
         if cfg.frame_start_override is not None:
@@ -88,15 +105,30 @@ def configure_render(cfg: RenderConfig, output_path: str, with_audio: bool = Fal
         r.image_settings.file_format = "PNG"
         r.image_settings.color_mode = "RGBA"
     elif cfg.output_format == "FFMPEG":
-        r.image_settings.file_format = "FFMPEG"
-        r.ffmpeg.format = "MPEG4"
-        r.ffmpeg.codec = cfg.ffmpeg_codec
-        r.ffmpeg.constant_rate_factor = cfg.ffmpeg_quality
-        if with_audio:
-            r.ffmpeg.audio_codec = "AAC"
-            r.ffmpeg.audio_bitrate = 192
-        else:
-            r.ffmpeg.audio_codec = "NONE"
+        # Some Blender builds (notably Debian-packaged Blender 5.x) ship without
+        # the movie-output formats — `file_format` is reduced to stills only.
+        # Detect that and degrade to a PNG sequence so the render still produces
+        # usable artifacts; user can assemble the sequence with a system ffmpeg.
+        try:
+            r.image_settings.file_format = "FFMPEG"  # raises if not in dynamic enum
+            r.ffmpeg.format = "MPEG4"
+            r.ffmpeg.codec = cfg.ffmpeg_codec
+            r.ffmpeg.constant_rate_factor = cfg.ffmpeg_quality
+            if with_audio:
+                r.ffmpeg.audio_codec = "AAC"
+                r.ffmpeg.audio_bitrate = 192
+            else:
+                r.ffmpeg.audio_codec = "NONE"
+        except TypeError as e:
+            log.info(
+                f"render.format: this Blender build cannot output FFMPEG video ({e}); "
+                f"falling back to PNG sequence at {output_path}_####.png"
+            )
+            r.image_settings.file_format = "PNG"
+            r.image_settings.color_mode = "RGBA"
+            # Strip any existing extension; Blender appends frame numbers + .png
+            base, _ = os.path.splitext(output_path)
+            r.filepath = base + "_"
     else:
         r.image_settings.file_format = "PNG"
         r.image_settings.color_mode = "RGBA"

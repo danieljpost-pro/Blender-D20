@@ -37,7 +37,7 @@ class TableConfig:
     size: Vec3 = (0.6, 0.6, 0.02)              # x, y, z extents (meters). z = thickness
     location: Vec3 = (0.0, 0.0, 0.0)           # center of the table top surface
     rotation_euler: Vec3 = (0.0, 0.0, 0.0)     # tilt the table if you want a slope
-    color: RGBA = (0.15, 0.35, 0.20, 1.0)      # default felt-green
+    color: RGBA = (0.06, 0.14, 0.08, 1.0)      # dark felt-green
     roughness: float = 0.85
     friction: float = 0.8                       # surface friction for the rigid body
     restitution: float = 0.3                    # how bouncy the surface is
@@ -67,15 +67,15 @@ class DieConfig:
     subdivision_levels: int = 0                 # 0 for sharp icosahedron faces
 
     # Body material
-    body_color: RGBA = (0.95, 0.95, 0.92, 1.0)  # off-white
+    body_color: RGBA = (0.55, 0.06, 0.05, 1.0)  # saturated deep red
     body_roughness: float = 0.35
     body_metallic: float = 0.0
     body_ior: float = 1.45                      # ~resin / acrylic
-    body_transmission: float = 0.0              # 0 = opaque, 1 = fully transparent (glass)
-    body_subsurface: float = 0.0                # for translucent resin look
+    body_transmission: float = 0.08             # slight translucency for resin look
+    body_subsurface: float = 0.12               # subsurface scatter for translucent depth
 
     # Number engraving
-    number_color: RGBA = (0.05, 0.05, 0.05, 1.0)  # ink color
+    number_color: RGBA = (0.02, 0.02, 0.02, 1.0)  # matte black ink
     number_roughness: float = 0.95                # matte finish; high = non-reflective
     number_style: Literal["decal", "inset", "raised"] = "decal"
     number_inset_depth: float = 0.0006          # only used for inset/raised
@@ -143,6 +143,17 @@ class CameraConfig:
     dof_focus_object: Optional[str] = "Die"      # name of object to focus on
     track_die: bool = False                       # if True, camera re-aims at die each frame
 
+    # Post-settle orbit: after the die comes to rest, smoothly move the camera
+    # over `orbit_duration_frames` to a top-down close-up of the up-facing face,
+    # then hold for `orbit_hold_frames`. Drives the final-shot composition.
+    orbit_enabled: bool = True
+    orbit_start_offset_frames: int = 6           # wait after settle before orbit begins
+    orbit_duration_frames: int = 36              # 1.5s @ 24fps
+    orbit_hold_frames: int = 24                  # 1s held on top-down view
+    orbit_end_distance: float = 0.18             # camera distance from die center at end (m)
+    orbit_end_tilt_deg: float = 15.0             # degrees off straight-down; 0 = exactly overhead
+    orbit_end_roll_deg: float = 0.0              # clockwise roll applied at orbit end (degrees)
+
 
 # ----------------------------------------------------------------------------
 # Lighting
@@ -155,25 +166,26 @@ class LightingConfig:
     key_type: Literal["AREA", "SUN", "POINT", "SPOT"] = "AREA"
     key_location: Vec3 = (0.4, -0.3, 0.6)
     key_rotation_euler: Vec3 = (0.7, 0.3, 0.5)
-    key_color: RGBA = (1.0, 0.98, 0.95, 1.0)
-    key_energy: float = 80.0
+    key_color: RGBA = (0.12, 0.12, 1.0, 1.0)      # deep blue
+    key_energy: float = 25.0
     key_size: float = 0.4                         # area light size
 
     fill_enabled: bool = True
     fill_location: Vec3 = (-0.5, -0.2, 0.4)
-    fill_color: RGBA = (0.85, 0.92, 1.0, 1.0)
-    fill_energy: float = 30.0
+    fill_color: RGBA = (1.0, 0.97, 0.78, 1.0)     # pale yellow
+    fill_energy: float = 8.0
 
     rim_enabled: bool = True
     rim_location: Vec3 = (0.0, 0.5, 0.5)
     rim_color: RGBA = (1.0, 1.0, 1.0, 1.0)
-    rim_energy: float = 50.0
+    rim_energy: float = 35.0
 
     # Environment
     hdri_path: Optional[str] = None               # if set, overrides background color
     hdri_strength: float = 1.0
     hdri_rotation_z: float = 0.0
     background_color: RGBA = (0.05, 0.05, 0.06, 1.0)
+    background_strength: float = 3.0             # world ambient strength; higher = more fill from all directions
 
 
 # ----------------------------------------------------------------------------

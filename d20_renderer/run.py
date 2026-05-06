@@ -133,6 +133,20 @@ def _build_parser() -> argparse.ArgumentParser:
                         help="Disable depth of field (faster render).")
     g_feat.add_argument("--no-rim-light", action="store_true")
     g_feat.add_argument("--no-fill-light", action="store_true")
+    g_feat.add_argument("--no-camera-orbit", action="store_true",
+                        help="Disable the post-settle camera move to a top-down close-up.")
+    g_feat.add_argument("--camera-orbit-frames", type=int, default=None, metavar="N",
+                        help="Frames over which the post-settle camera orbit runs.")
+    g_feat.add_argument("--camera-orbit-hold", type=int, default=None, metavar="N",
+                        help="Frames to hold the top-down view after the orbit lands.")
+    g_feat.add_argument("--camera-orbit-distance", type=float, default=None, metavar="M",
+                        help="Camera distance from die center at the end of the orbit (meters).")
+    g_feat.add_argument("--camera-orbit-start-offset", type=int, default=None, metavar="N",
+                        help="Frames to wait after settle before the orbit begins.")
+    g_feat.add_argument("--camera-orbit-tilt", type=float, default=None, metavar="DEG",
+                        help="Degrees off straight-down for the orbit end pose (default 15; 0=exactly overhead).")
+    g_feat.add_argument("--camera-orbit-roll", type=float, default=None, metavar="DEG",
+                        help="Clockwise roll applied to camera at orbit end, in degrees (default 0).")
 
     # --- Stages & caching ---
     g_stage = p.add_argument_group("stages & caching")
@@ -270,6 +284,20 @@ def _apply_cli_overrides(cfg: PipelineConfig, args: argparse.Namespace) -> None:
         cfg.lighting.rim_enabled = False
     if args.no_fill_light:
         cfg.lighting.fill_enabled = False
+    if args.no_camera_orbit:
+        cfg.camera.orbit_enabled = False
+    if args.camera_orbit_frames is not None:
+        cfg.camera.orbit_duration_frames = args.camera_orbit_frames
+    if args.camera_orbit_hold is not None:
+        cfg.camera.orbit_hold_frames = args.camera_orbit_hold
+    if args.camera_orbit_distance is not None:
+        cfg.camera.orbit_end_distance = args.camera_orbit_distance
+    if args.camera_orbit_start_offset is not None:
+        cfg.camera.orbit_start_offset_frames = args.camera_orbit_start_offset
+    if args.camera_orbit_tilt is not None:
+        cfg.camera.orbit_end_tilt_deg = args.camera_orbit_tilt
+    if args.camera_orbit_roll is not None:
+        cfg.camera.orbit_end_roll_deg = args.camera_orbit_roll
 
     # Stages & cache
     if args.no_simulate:
