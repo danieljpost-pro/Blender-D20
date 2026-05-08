@@ -6,23 +6,23 @@
   },
   "physics": {
     "initial_linear_velocity": [
-      3.0,
       0.0,
+      2.0,
       0.0
     ],
     "initial_angular_velocity": [
       22.0,
       4.0,
-      34.0
+      10.0
     ],
     "settle_velocity_threshold": 0.02
   },
   "die": {
-    "size": 0.04,
+    "size": 0.02,
     "body_color": [
-      0.0005,
+      0.005,
       0.4,
-      0.0002,
+      0.002,
       1.0
     ],
     "body_roughness": 0.25,
@@ -113,6 +113,6 @@
     "enabled": false
   },
   "desired_outcomes": [
-    20
+    19
   ]
 }
