@@ -1,0 +1,118 @@
+{
+  "_comment": "Classic translucent green resin D20 with very subtle subsurface scattering. No banner or audio — clean roll only.",
+  "camera": {
+    "orbit_start_offset_frames": -40,
+    "track_die": "True"
+  },
+  "physics": {
+    "initial_angular_velocity": [
+      22.0,
+      200.0,
+      34.0
+    ],
+    "settle_velocity_threshold": 0.02
+  },
+  "die": {
+    "size": 0.03,
+    "body_color": [
+      0.0005,
+      0.4,
+      0.0002,
+      1.0
+    ],
+    "body_roughness": 0.25,
+    "body_transmission": 0.001,
+    "body_subsurface": 0.15,
+    "body_metallic": 0.1,
+    "body_ior": 1.5,
+    "number_color": [
+      0.0,
+      0.0,
+      0.0,
+      1.0
+    ],
+    "number_style": "inset",
+    "number_inset_depth": 0.004,
+    "bevel_amount": 0.0004,
+    "bevel_segments": 1,
+    "font_scale": 0.5
+  },
+  "table": {
+    "size": [
+      0.2,
+      0.2,
+      0.2
+    ],
+    "rotation_euler": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "color": [
+      0.0,
+      0.0,
+      0.0,
+      0.0
+    ],
+    "roughness": 1.0,
+    "friction": 0.75,
+    "restitution": 0.3,
+    "normal_map_path": null,
+    "bumpers_enabled": true,
+    "bumpers_height": 0.7,
+    "bumpers_visible": false,
+    "bumpers_restitution": 0.4,
+    "bumpers_friction": 0.5,
+    "bumpers_roughness": 1.0
+  },
+  "lighting": {
+    "key_energy": 20.0,
+    "key_size": 20.0,
+    "fill_energy": 5.0,
+    "rim_energy": 4.0,
+    "ambient_energy": 2.0,
+    "background_roughness": 1.0,
+    "background_metallic": 0.0,
+    "background_strength": 3.0,
+    "background_ior": 1.5,
+    "background_transmission": 0.04,
+    "background_subsurface": 0.02,
+    "fill_color": [
+      1.0,
+      0.97,
+      0.78,
+      1.0
+    ],
+    "rim_color": [
+      0.0,
+      0.0,
+      0.9,
+      1.0
+    ],
+    "ambient_color": [
+      0.01,
+      0.01,
+      0.0,
+      1.0
+    ],
+    "background_color": [
+      0.0,
+      0.0,
+      0.0,
+      1.0
+    ]
+  },
+  "render": {
+    "fps": 24,
+    "use_motion_blur": true,
+    "resolution_percentage": 25,
+    "resolution_x": 600,
+    "resolution_y": 800
+  },
+  "banner": {
+    "enabled": false
+  },
+  "desired_outcomes": [
+    20
+  ]
+}
