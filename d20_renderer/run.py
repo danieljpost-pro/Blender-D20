@@ -41,7 +41,7 @@ import json
 import os
 import sys
 from dataclasses import fields, is_dataclass
-from typing import Any, Dict
+from typing import Any
 
 # Make the package importable when running via `blender --python`.
 _THIS_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -51,7 +51,6 @@ if _PARENT not in sys.path:
 
 from d20_renderer.config import PipelineConfig  # noqa: E402
 from d20_renderer.pipeline import run  # noqa: E402
-
 
 # ----------------------------------------------------------------------------
 # Argument parsing
@@ -306,7 +305,7 @@ def _parse_args() -> argparse.Namespace:
 # ----------------------------------------------------------------------------
 
 
-def _apply_json_overrides(cfg: PipelineConfig, overrides: Dict[str, Any]) -> None:
+def _apply_json_overrides(cfg: PipelineConfig, overrides: dict[str, Any]) -> None:
     """Recursively apply a dict of overrides onto a dataclass tree."""
 
     def merge(obj, ov):

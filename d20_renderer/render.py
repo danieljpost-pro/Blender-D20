@@ -12,8 +12,8 @@ import os
 
 import bpy
 
-from .config import RenderConfig
 from . import log
+from .config import RenderConfig
 
 
 def configure_render(cfg: RenderConfig, output_path: str, with_audio: bool = False) -> None:

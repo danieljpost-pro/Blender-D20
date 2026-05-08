@@ -21,12 +21,10 @@ audio codec setting when banner_audio is enabled.
 from __future__ import annotations
 
 import os
-from typing import Optional
 
 import bpy
 
 from .config import BannerAudioConfig, BannerConfig
-
 
 # ----------------------------------------------------------------------------
 # Public API
@@ -130,7 +128,7 @@ def _clear_audio_strips() -> None:
         seqs.remove(s)
 
 
-def _resolve_audio_path(per_outcome: dict, default: Optional[str], outcome: int) -> Optional[str]:
+def _resolve_audio_path(per_outcome: dict, default: str | None, outcome: int) -> str | None:
     """Per-outcome path takes precedence; otherwise fall back to default.
 
     Handles both int and str keys, since JSON-loaded dicts will have string keys

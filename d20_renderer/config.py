@@ -20,10 +20,10 @@ Design notes
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import Optional, Tuple, List, Literal
+from typing import Literal
 
-Vec3 = Tuple[float, float, float]
-RGBA = Tuple[float, float, float, float]
+Vec3 = tuple[float, float, float]
+RGBA = tuple[float, float, float, float]
 
 
 # ----------------------------------------------------------------------------
@@ -42,8 +42,8 @@ class TableConfig:
     roughness: float = 0.85
     friction: float = 0.8  # surface friction for the rigid body
     restitution: float = 0.3  # how bouncy the surface is
-    texture_path: Optional[str] = None  # optional image texture (felt, wood, etc.)
-    normal_map_path: Optional[str] = None  # optional normal map for surface detail
+    texture_path: str | None = None  # optional image texture (felt, wood, etc.)
+    normal_map_path: str | None = None  # optional normal map for surface detail
 
     # Bumpers: invisible walls to keep the die in frame.
     bumpers_enabled: bool = True
@@ -81,7 +81,7 @@ class DieConfig:
     number_roughness: float = 0.95  # matte finish; high = non-reflective
     number_style: Literal["decal", "inset", "raised"] = "decal"
     number_inset_depth: float = 0.0006  # only used for inset/raised
-    font_path: Optional[str] = None  # path to .ttf/.otf; None = Blender default
+    font_path: str | None = None  # path to .ttf/.otf; None = Blender default
     font_scale: float = 0.55  # fraction of face inradius
     font_bold: bool = True
 
@@ -89,7 +89,7 @@ class DieConfig:
     # i-th face of the icosahedron mesh as Blender generates it. The pipeline
     # will rewrite this after simulation so that the up-facing face shows the
     # desired roll outcome.
-    face_values: List[int] = field(default_factory=lambda: list(range(1, 21)))
+    face_values: list[int] = field(default_factory=lambda: list(range(1, 21)))
 
     # Physics-only properties
     mass: float = 0.012  # kg (~12g, typical D20)
@@ -144,7 +144,7 @@ class CameraConfig:
     sensor_width_mm: float = 36.0
     dof_enabled: bool = True
     dof_fstop: float = 2.8
-    dof_focus_object: Optional[str] = "Die"  # name of object to focus on
+    dof_focus_object: str | None = "Die"  # name of object to focus on
     track_die: bool = False  # if True, camera re-aims at die each frame
 
     # Post-settle orbit: after the die comes to rest, smoothly move the camera
@@ -186,7 +186,7 @@ class LightingConfig:
     rim_energy: float = 35.0
 
     # Environment
-    hdri_path: Optional[str] = None  # if set, overrides background color
+    hdri_path: str | None = None  # if set, overrides background color
     hdri_strength: float = 1.0
     hdri_rotation_z: float = 0.0
     background_color: RGBA = (0.05, 0.05, 0.06, 1.0)
@@ -225,7 +225,7 @@ class BannerAudioConfig:
 
     # --- Sting (one-shot SFX) ---
     sting_enabled: bool = True
-    sting_default_path: Optional[str] = None
+    sting_default_path: str | None = None
     sting_per_outcome: dict = field(
         default_factory=dict
     )  # {20: "/path/crit.wav", 1: "/path/fail.wav"}
@@ -234,7 +234,7 @@ class BannerAudioConfig:
 
     # --- Ambience (background loop) ---
     ambience_enabled: bool = False
-    ambience_default_path: Optional[str] = None
+    ambience_default_path: str | None = None
     ambience_per_outcome: dict = field(default_factory=dict)
     ambience_volume: float = 0.4
     ambience_loop: bool = True
@@ -243,8 +243,8 @@ class BannerAudioConfig:
     # Timing: when does ambience start/stop relative to the banner?
     # By default, follows the banner's visible window.
     ambience_follow_banner: bool = True
-    ambience_start_frame_absolute: Optional[int] = None  # only if follow_banner=False
-    ambience_end_frame_absolute: Optional[int] = None
+    ambience_start_frame_absolute: int | None = None  # only if follow_banner=False
+    ambience_end_frame_absolute: int | None = None
 
 
 # ----------------------------------------------------------------------------
@@ -264,7 +264,7 @@ class BannerConfig:
 
     # Content. `{value}` is substituted with the actual roll outcome.
     text_template: str = "You rolled a {value}!"
-    font_path: Optional[str] = None
+    font_path: str | None = None
     font_size_px: int = 96
     text_color: RGBA = (1.0, 1.0, 1.0, 1.0)
     outline_color: RGBA = (0.0, 0.0, 0.0, 1.0)
@@ -331,13 +331,13 @@ class RenderConfig:
     # If set, only render this slice [start, end] instead of the full simulation
     # range. Useful for previewing the settle+banner segment without re-rendering
     # the bouncing portion.
-    frame_start_override: Optional[int] = None
-    frame_end_override: Optional[int] = None
+    frame_start_override: int | None = None
+    frame_end_override: int | None = None
 
     # --- Single-frame preview mode ---
     # If set, render exactly this one frame as a PNG (ignores output_format).
     # Useful for sanity-checking lighting/composition cheaply.
-    single_frame: Optional[int] = None
+    single_frame: int | None = None
 
 
 # ----------------------------------------------------------------------------
@@ -377,7 +377,7 @@ class LoggingConfig:
     verbose: bool = False
     quiet: bool = False  # suppress all but warnings/errors
     dry_run: bool = False  # build scene + log plan, skip bake/render
-    log_file: Optional[str] = None  # path to log file for recording invocations
+    log_file: str | None = None  # path to log file for recording invocations
 
 
 @dataclass
@@ -412,7 +412,7 @@ class PipelineConfig:
 
     # What outcomes to render from this simulation. e.g. [20] for a single
     # "natural 20" video, or list(range(1, 21)) for a full set.
-    desired_outcomes: List[int] = field(default_factory=lambda: [20])
+    desired_outcomes: list[int] = field(default_factory=lambda: [20])
 
     # Random seed used only for non-physics aesthetic variation (e.g. minor
     # camera jitter, if you add it later). Bullet itself is deterministic.

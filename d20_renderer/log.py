@@ -8,8 +8,8 @@ Blender's subprocess context — a print wrapper is enough for our needs.
 from __future__ import annotations
 
 import os
-from .config import LoggingConfig
 
+from .config import LoggingConfig
 
 _state = {"verbose": False, "quiet": False, "dry_run": False, "log_file": None}
 

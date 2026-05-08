@@ -16,22 +16,20 @@ islands, which is more setup for the same flexibility.
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, List, Tuple
+import math
+from typing import TYPE_CHECKING
 
 import bpy
-import bmesh
-import math
+from mathutils import Quaternion, Vector
 
-from mathutils import Vector, Quaternion
-
-from .config import DieConfig
 from . import log
+from .config import DieConfig
 
 if TYPE_CHECKING:
     from bpy.types import Object
 
 
-def build_die(cfg: DieConfig, with_labels: bool = True) -> "Object":
+def build_die(cfg: DieConfig, with_labels: bool = True) -> Object:
     """
     Build a D20 (icosahedron) with rounded edges and a body material.
     If with_labels=True, also add 20 child text labels (one per face with fixed numbers).
@@ -53,7 +51,7 @@ def build_die(cfg: DieConfig, with_labels: bool = True) -> "Object":
 # ----------------------------------------------------------------------------
 
 
-def _build_icosahedron_mesh(cfg: DieConfig) -> "Object":
+def _build_icosahedron_mesh(cfg: DieConfig) -> Object:
     bpy.ops.mesh.primitive_ico_sphere_add(
         subdivisions=1,  # subdivisions=1 gives the 20-face icosahedron
         radius=cfg.size,
@@ -64,7 +62,7 @@ def _build_icosahedron_mesh(cfg: DieConfig) -> "Object":
     return die
 
 
-def _apply_bevel(die: "Object", cfg: DieConfig) -> None:
+def _apply_bevel(die: Object, cfg: DieConfig) -> None:
     """
     Add and destructively apply a Bevel modifier.
 
@@ -96,7 +94,7 @@ def _apply_bevel(die: "Object", cfg: DieConfig) -> None:
 # ----------------------------------------------------------------------------
 
 
-def _apply_body_material(die: "Object", cfg: DieConfig) -> None:
+def _apply_body_material(die: Object, cfg: DieConfig) -> None:
     mat = bpy.data.materials.new(name="DieBody")
     mat.use_nodes = True
     bsdf = mat.node_tree.nodes["Principled BSDF"]
@@ -129,7 +127,7 @@ def _apply_body_material(die: "Object", cfg: DieConfig) -> None:
 # ----------------------------------------------------------------------------
 
 
-def _setup_rigid_body(die: "Object", cfg: DieConfig) -> None:
+def _setup_rigid_body(die: Object, cfg: DieConfig) -> None:
     bpy.ops.object.select_all(action="DESELECT")
     die.select_set(True)
     bpy.context.view_layer.objects.active = die
@@ -151,7 +149,7 @@ def _setup_rigid_body(die: "Object", cfg: DieConfig) -> None:
 # ----------------------------------------------------------------------------
 
 
-def get_face_centers_and_normals(die: "Object") -> List[Tuple[int, Vector, Vector]]:
+def get_face_centers_and_normals(die: Object) -> list[tuple[int, Vector, Vector]]:
     """
     Return a list of (face_index, center_local, normal_local) tuples, one per
     triangular face of the icosahedron. All vectors are in the die's local space.
@@ -163,7 +161,7 @@ def get_face_centers_and_normals(die: "Object") -> List[Tuple[int, Vector, Vecto
     return out
 
 
-def get_labelled_face_normals(die: "Object") -> dict:
+def get_labelled_face_normals(die: Object) -> dict:
     """
     Return {face_index: outward_normal_local} for each labelled face, deriving
     the normal from the parented label's local position relative to the die's
@@ -189,14 +187,14 @@ def get_labelled_face_normals(die: "Object") -> dict:
     return out
 
 
-def _build_face_labels(die: "Object", cfg: DieConfig) -> List["Object"]:
+def _build_face_labels(die: Object, cfg: DieConfig) -> list[Object]:
     """
     Create one text object per face, positioned just above the face center
     along its outward normal, and oriented so the text reads when looking
     straight at that face. Each label is parented to the die so it tumbles
     along with the die through the simulation.
     """
-    labels: List["Object"] = []
+    labels: list[Object] = []
     faces = get_face_centers_and_normals(die)
     log.debug(f"die.labels: building labels for {len(faces)} face polygons (expect 20)")
     inradius = _icosahedron_inradius(cfg.size)
@@ -272,13 +270,13 @@ def _icosahedron_inradius(circumradius: float) -> float:
 # ----------------------------------------------------------------------------
 
 
-def _apply_initial_face_values(labels: List["Object"], values: List[int]) -> None:
+def _apply_initial_face_values(labels: list[Object], values: list[int]) -> None:
     """Set the text body of each label to its initial assigned value."""
     for label, value in zip(labels, values):
         label.data.body = str(value)
 
 
-def assign_outcome_to_face(die: "Object", up_face_index: int, desired_value: int) -> None:
+def assign_outcome_to_face(die: Object, up_face_index: int, desired_value: int) -> None:
     """
     Re-label every face so the face at `up_face_index` shows `desired_value`,
     by applying an icosahedral-symmetry rotation to the entire labeling.

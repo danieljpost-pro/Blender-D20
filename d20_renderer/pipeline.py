@@ -17,21 +17,21 @@ Hardware-aware features:
 from __future__ import annotations
 
 import os
-import sys
 import shlex
+import sys
 from datetime import datetime
 
 import bpy
 
-from .config import PipelineConfig
-from . import scene as scene_mod
-from . import die as die_mod
-from . import physics as physics_mod
 from . import banner as banner_mod
 from . import banner_audio as banner_audio_mod
-from . import render as render_mod
 from . import cache as cache_mod
+from . import die as die_mod
 from . import log
+from . import physics as physics_mod
+from . import render as render_mod
+from . import scene as scene_mod
+from .config import PipelineConfig
 
 
 def _log_invocation(cfg: PipelineConfig) -> None:

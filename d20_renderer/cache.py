@@ -22,10 +22,9 @@ import hashlib
 import json
 import os
 from dataclasses import asdict, is_dataclass
-from typing import Any, List
+from typing import Any
 
-from .config import PipelineConfig, CacheConfig
-
+from .config import CacheConfig, PipelineConfig
 
 # ----------------------------------------------------------------------------
 # Hashing

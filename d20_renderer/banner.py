@@ -29,10 +29,9 @@ from typing import TYPE_CHECKING
 import bpy
 
 from .config import BannerConfig, RenderConfig
-from . import log
 
 if TYPE_CHECKING:
-    from bpy.types import Object
+    pass
 
 
 def setup_banner(

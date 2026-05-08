@@ -9,14 +9,13 @@ Physics simulation control:
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Optional, Tuple
+from typing import TYPE_CHECKING
 
 import bpy
-from mathutils import Vector, Euler
+from mathutils import Euler, Vector
 
-from .config import PhysicsConfig
-from .die import get_face_centers_and_normals
 from . import log
+from .config import PhysicsConfig
 
 if TYPE_CHECKING:
     from bpy.types import Object
@@ -45,7 +44,7 @@ def configure_world(cfg: PhysicsConfig) -> None:
     rbw.point_cache.frame_end = cfg.max_simulation_frames
 
 
-def apply_initial_throw(die: "Object", cfg: PhysicsConfig) -> None:
+def apply_initial_throw(die: Object, cfg: PhysicsConfig) -> None:
     """
     Place the die at its initial position/rotation and assign initial linear
     and angular velocity. Velocities must be keyframed at frame 1 because
@@ -112,7 +111,7 @@ def bake_simulation(cfg: PhysicsConfig) -> None:
 # ----------------------------------------------------------------------------
 
 
-def find_settle_frame(die: "Object", cfg: PhysicsConfig) -> int:
+def find_settle_frame(die: Object, cfg: PhysicsConfig) -> int:
     """
     Step through baked frames and find the first frame at which the die has
     been "still" for `settle_required_frames` consecutive frames.
@@ -125,10 +124,10 @@ def find_settle_frame(die: "Object", cfg: PhysicsConfig) -> int:
     threshold = cfg.settle_velocity_threshold
     required = cfg.settle_required_frames
 
-    prev_loc: Optional[Vector] = None
-    prev_rot: Optional[Vector] = None
+    prev_loc: Vector | None = None
+    prev_rot: Vector | None = None
     quiet_streak = 0
-    settle_frame: Optional[int] = None
+    settle_frame: int | None = None
 
     for f in range(1, cfg.max_simulation_frames + 1):
         scene.frame_set(f)
@@ -164,7 +163,7 @@ def find_settle_frame(die: "Object", cfg: PhysicsConfig) -> int:
     return settle_frame
 
 
-def find_up_face(die: "Object", at_frame: int) -> int:
+def find_up_face(die: Object, at_frame: int) -> int:
     """
     Return the face_index of the labelled face whose world-space outward
     normal is most aligned with +Z at the given frame — i.e. the face on top

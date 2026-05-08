@@ -12,7 +12,7 @@ from typing import TYPE_CHECKING
 
 import bpy
 
-from .config import TableConfig, CameraConfig, LightingConfig
+from .config import CameraConfig, LightingConfig, TableConfig
 
 if TYPE_CHECKING:
     from bpy.types import Object
@@ -23,7 +23,7 @@ if TYPE_CHECKING:
 # ----------------------------------------------------------------------------
 
 
-def build_table(cfg: TableConfig) -> "Object":
+def build_table(cfg: TableConfig) -> Object:
     """Create the table surface as a passive rigid body."""
     bpy.ops.mesh.primitive_cube_add(size=1.0, location=cfg.location)
     table = bpy.context.active_object
@@ -55,7 +55,7 @@ def build_table(cfg: TableConfig) -> "Object":
     return table
 
 
-def _build_bumpers(cfg: TableConfig, table: "Object") -> None:
+def _build_bumpers(cfg: TableConfig, table: Object) -> None:
     """Four invisible (or visible) walls around the table edge."""
     sx, sy, sz = cfg.size
     h = cfg.bumpers_height
@@ -94,7 +94,7 @@ def _build_bumpers(cfg: TableConfig, table: "Object") -> None:
 # ----------------------------------------------------------------------------
 
 
-def build_camera(cfg: CameraConfig) -> "Object":
+def build_camera(cfg: CameraConfig) -> Object:
     bpy.ops.object.camera_add(location=cfg.location)
     cam = bpy.context.active_object
     cam.name = "Camera"
@@ -121,8 +121,8 @@ def build_camera(cfg: CameraConfig) -> "Object":
 
 
 def animate_camera_orbit(
-    cam: "Object",
-    die: "Object",
+    cam: Object,
+    die: Object,
     settle_frame: int,
     up_face_world_normal,
     cfg: CameraConfig,
@@ -143,6 +143,7 @@ def animate_camera_orbit(
         return settle_frame
 
     import math
+
     import mathutils
 
     die_pos = die.matrix_world.translation.copy()
