@@ -22,6 +22,7 @@ if TYPE_CHECKING:
 # Table
 # ----------------------------------------------------------------------------
 
+
 def build_table(cfg: TableConfig) -> "Object":
     """Create the table surface as a passive rigid body."""
     bpy.ops.mesh.primitive_cube_add(size=1.0, location=cfg.location)
@@ -60,17 +61,20 @@ def _build_bumpers(cfg: TableConfig, table: "Object") -> None:
     h = cfg.bumpers_height
     # Each wall is a thin box positioned at one edge of the table.
     walls = [
-        ("Bumper_N", (0,  sy, sz + h / 2), (sx, 0.005, h)),
+        ("Bumper_N", (0, sy, sz + h / 2), (sx, 0.005, h)),
         ("Bumper_S", (0, -sy, sz + h / 2), (sx, 0.005, h)),
-        ("Bumper_E", ( sx, 0, sz + h / 2), (0.005, sy, h)),
+        ("Bumper_E", (sx, 0, sz + h / 2), (0.005, sy, h)),
         ("Bumper_W", (-sx, 0, sz + h / 2), (0.005, sy, h)),
     ]
     for name, loc, scale in walls:
-        bpy.ops.mesh.primitive_cube_add(size=1.0, location=(
-            cfg.location[0] + loc[0],
-            cfg.location[1] + loc[1],
-            cfg.location[2] + loc[2],
-        ))
+        bpy.ops.mesh.primitive_cube_add(
+            size=1.0,
+            location=(
+                cfg.location[0] + loc[0],
+                cfg.location[1] + loc[1],
+                cfg.location[2] + loc[2],
+            ),
+        )
         wall = bpy.context.active_object
         wall.name = name
         wall.scale = scale
@@ -88,6 +92,7 @@ def _build_bumpers(cfg: TableConfig, table: "Object") -> None:
 # ----------------------------------------------------------------------------
 # Camera
 # ----------------------------------------------------------------------------
+
 
 def build_camera(cfg: CameraConfig) -> "Object":
     bpy.ops.object.camera_add(location=cfg.location)
@@ -184,7 +189,7 @@ def animate_camera_orbit(
     # TRACK_TO handles pointing during the glide; at arrive_f we fade it out
     # and take over with a manually computed rotation that includes the roll.
     if cfg.orbit_end_roll_deg != 0.0:
-        track = next((c for c in cam.constraints if c.type == 'TRACK_TO'), None)
+        track = next((c for c in cam.constraints if c.type == "TRACK_TO"), None)
         if track:
             # Hold at full influence through the glide, snap off at arrive_f.
             track.influence = 1.0
@@ -198,7 +203,7 @@ def animate_camera_orbit(
                     if "influence" in fc.data_path:
                         for kp in fc.keyframe_points:
                             if abs(kp.co.x - (arrive_f - 1)) < 0.5:
-                                kp.interpolation = 'CONSTANT'
+                                kp.interpolation = "CONSTANT"
 
         # Compute pointing direction from end camera location to die.
         view_vec = (die_pos - end_cam_loc).normalized()
@@ -216,11 +221,13 @@ def animate_camera_orbit(
         neg_view = -view_vec
 
         # Build rotation matrix: columns are (right, up, -view) in world space.
-        rot = mathutils.Matrix((
-            (right_r.x, up_r.x, neg_view.x),
-            (right_r.y, up_r.y, neg_view.y),
-            (right_r.z, up_r.z, neg_view.z),
-        ))
+        rot = mathutils.Matrix(
+            (
+                (right_r.x, up_r.x, neg_view.x),
+                (right_r.y, up_r.y, neg_view.y),
+                (right_r.z, up_r.z, neg_view.z),
+            )
+        )
         cam.rotation_euler = rot.to_euler()
         cam.keyframe_insert(data_path="rotation_euler", frame=arrive_f)
         cam.keyframe_insert(data_path="rotation_euler", frame=end_f)
@@ -238,19 +245,40 @@ def animate_camera_orbit(
 # Lighting
 # ----------------------------------------------------------------------------
 
+
 def build_lighting(cfg: LightingConfig) -> None:
     if cfg.key_enabled:
-        _add_light("KeyLight", cfg.key_type, cfg.key_location,
-                   cfg.key_rotation_euler, cfg.key_color, cfg.key_energy,
-                   size=cfg.key_size)
+        _add_light(
+            "KeyLight",
+            cfg.key_type,
+            cfg.key_location,
+            cfg.key_rotation_euler,
+            cfg.key_color,
+            cfg.key_energy,
+            size=cfg.key_size,
+        )
 
     if cfg.fill_enabled:
-        _add_light("FillLight", "AREA", cfg.fill_location, (0.6, 0.0, 0.0),
-                   cfg.fill_color, cfg.fill_energy, size=0.6)
+        _add_light(
+            "FillLight",
+            "AREA",
+            cfg.fill_location,
+            (0.6, 0.0, 0.0),
+            cfg.fill_color,
+            cfg.fill_energy,
+            size=0.6,
+        )
 
     if cfg.rim_enabled:
-        _add_light("RimLight", "AREA", cfg.rim_location, (-0.4, 0.0, 0.0),
-                   cfg.rim_color, cfg.rim_energy, size=0.3)
+        _add_light(
+            "RimLight",
+            "AREA",
+            cfg.rim_location,
+            (-0.4, 0.0, 0.0),
+            cfg.rim_color,
+            cfg.rim_energy,
+            size=0.3,
+        )
 
     _setup_world(cfg)
 

@@ -31,6 +31,7 @@ from .config import PipelineConfig, CacheConfig
 # Hashing
 # ----------------------------------------------------------------------------
 
+
 def _stable_dump(obj: Any) -> str:
     """JSON dump that sorts keys for stable hashing across Python runs."""
     if is_dataclass(obj):
@@ -49,6 +50,7 @@ def _hash(*parts: Any) -> str:
 # ----------------------------------------------------------------------------
 # Stage keys — what each stage's output depends on
 # ----------------------------------------------------------------------------
+
 
 def physics_key(cfg: PipelineConfig) -> str:
     """
@@ -92,8 +94,8 @@ def render_key(cfg: PipelineConfig, outcome: int) -> str:
     Effectively: if anything changed, re-render.
     """
     return _hash(
-        physics_key(cfg),       # transitively includes physics-relevant inputs
-        cfg.die,                # full die config including materials
+        physics_key(cfg),  # transitively includes physics-relevant inputs
+        cfg.die,  # full die config including materials
         cfg.camera,
         cfg.lighting,
         cfg.banner,
@@ -106,6 +108,7 @@ def render_key(cfg: PipelineConfig, outcome: int) -> str:
 # ----------------------------------------------------------------------------
 # Sidecar file helpers
 # ----------------------------------------------------------------------------
+
 
 def _key_path(output_path: str) -> str:
     return output_path + ".cache_key"

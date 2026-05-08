@@ -27,10 +27,12 @@ def configure_render(cfg: RenderConfig, output_path: str, with_audio: bool = Fal
     scene = bpy.context.scene
     r = scene.render
 
-    log.debug(f"render.configure: engine={cfg.engine}, device={cfg.device}, samples={cfg.samples}, "
-              f"res={cfg.resolution_x}x{cfg.resolution_y}@{cfg.resolution_percentage}%, "
-              f"fps={cfg.fps}, format={cfg.output_format}, denoiser={cfg.use_denoiser}, "
-              f"audio={with_audio}, output={output_path}")
+    log.debug(
+        f"render.configure: engine={cfg.engine}, device={cfg.device}, samples={cfg.samples}, "
+        f"res={cfg.resolution_x}x{cfg.resolution_y}@{cfg.resolution_percentage}%, "
+        f"fps={cfg.fps}, format={cfg.output_format}, denoiser={cfg.use_denoiser}, "
+        f"audio={with_audio}, output={output_path}"
+    )
 
     # --- Engine ---
     # Blender 4.x exposes the new EEVEE as `BLENDER_EEVEE_NEXT` alongside the
@@ -41,10 +43,14 @@ def configure_render(cfg: RenderConfig, output_path: str, with_audio: bool = Fal
     requested = cfg.engine
     if requested not in valid_engines:
         if requested == "BLENDER_EEVEE_NEXT" and "BLENDER_EEVEE" in valid_engines:
-            log.debug("render.engine: BLENDER_EEVEE_NEXT not available; using BLENDER_EEVEE (Blender 5+)")
+            log.debug(
+                "render.engine: BLENDER_EEVEE_NEXT not available; using BLENDER_EEVEE (Blender 5+)"
+            )
             requested = "BLENDER_EEVEE"
         elif requested == "BLENDER_EEVEE" and "BLENDER_EEVEE_NEXT" in valid_engines:
-            log.debug("render.engine: legacy BLENDER_EEVEE; using BLENDER_EEVEE_NEXT (Blender 4.2+)")
+            log.debug(
+                "render.engine: legacy BLENDER_EEVEE; using BLENDER_EEVEE_NEXT (Blender 4.2+)"
+            )
             requested = "BLENDER_EEVEE_NEXT"
     r.engine = requested
 
@@ -88,7 +94,9 @@ def configure_render(cfg: RenderConfig, output_path: str, with_audio: bool = Fal
     if cfg.single_frame is not None:
         scene.frame_start = cfg.single_frame
         scene.frame_end = cfg.single_frame
-        scene.frame_current = cfg.single_frame  # bpy.ops.render.render(write_still=True) renders frame_current
+        scene.frame_current = (
+            cfg.single_frame
+        )  # bpy.ops.render.render(write_still=True) renders frame_current
         log.debug(f"single_frame mode: rendering frame {cfg.single_frame} only")
     else:
         if cfg.frame_start_override is not None:
@@ -110,7 +118,6 @@ def configure_render(cfg: RenderConfig, output_path: str, with_audio: bool = Fal
         # Detect that and degrade to a PNG sequence so the render still produces
         # usable artifacts; user can assemble the sequence with a system ffmpeg.
         try:
-
             r.image_settings.media_type = "VIDEO"
             r.image_settings.file_format = "FFMPEG"  # raises if not in dynamic enum
             r.ffmpeg.format = "MPEG4"
@@ -152,14 +159,14 @@ def render_animation() -> None:
         log.info(f"frame {frame}/{total} ({pct}%)")
 
     # Register callback (Blender 3.2+)
-    if hasattr(bpy.app.handlers, 'render_complete'):
+    if hasattr(bpy.app.handlers, "render_complete"):
         bpy.app.handlers.render_complete.append(on_render_complete)
 
     try:
         bpy.ops.render.render(animation=not is_still, write_still=is_still)
     finally:
         # Unregister callback
-        if hasattr(bpy.app.handlers, 'render_complete'):
+        if hasattr(bpy.app.handlers, "render_complete"):
             try:
                 bpy.app.handlers.render_complete.remove(on_render_complete)
             except ValueError:

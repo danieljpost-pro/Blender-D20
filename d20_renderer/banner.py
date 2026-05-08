@@ -51,9 +51,7 @@ def setup_banner(
         return
 
     # 1. Render the banner image to a temp PNG
-    banner_png_path = _render_banner_png(
-        banner_cfg, render_cfg, outcome_value
-    )
+    banner_png_path = _render_banner_png(banner_cfg, render_cfg, outcome_value)
 
     # 2. Wire up the compositor
     _build_compositor_graph(banner_cfg, render_cfg, banner_png_path, settle_frame)
@@ -62,6 +60,7 @@ def setup_banner(
 # ----------------------------------------------------------------------------
 # Banner image generation (PIL)
 # ----------------------------------------------------------------------------
+
 
 def _render_banner_png(
     cfg: BannerConfig,
@@ -124,6 +123,7 @@ def _render_banner_png(
 # Compositor graph
 # ----------------------------------------------------------------------------
 
+
 def _get_compositor_tree(scene):
     """Return scene's compositor NodeTree, creating it if needed.
 
@@ -178,9 +178,7 @@ def _new_composite_sink(tree):
             getattr(item, "in_out", None) == "OUTPUT" and item.name == "Image"
             for item in tree.interface.items_tree
         ):
-            tree.interface.new_socket(
-                name="Image", in_out="OUTPUT", socket_type="NodeSocketColor"
-            )
+            tree.interface.new_socket(name="Image", in_out="OUTPUT", socket_type="NodeSocketColor")
         node = tree.nodes.new("NodeGroupOutput")
         return node.inputs["Image"]
 

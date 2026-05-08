@@ -50,12 +50,13 @@ if _PARENT not in sys.path:
     sys.path.insert(0, _PARENT)
 
 from d20_renderer.config import PipelineConfig  # noqa: E402
-from d20_renderer.pipeline import run            # noqa: E402
+from d20_renderer.pipeline import run  # noqa: E402
 
 
 # ----------------------------------------------------------------------------
 # Argument parsing
 # ----------------------------------------------------------------------------
+
 
 def _build_parser() -> argparse.ArgumentParser:
     p = argparse.ArgumentParser(
@@ -65,117 +66,228 @@ def _build_parser() -> argparse.ArgumentParser:
 
     # --- Config & outputs ---
     g_cfg = p.add_argument_group("config & output")
-    g_cfg.add_argument("--config", type=str, default=None,
-                      help="Path to a JSON file with overrides for PipelineConfig.")
-    g_cfg.add_argument("--outcomes", type=int, nargs="+", default=None,
-                      help="Desired outcomes 1..20. e.g. --outcomes 1 13 20")
-    g_cfg.add_argument("--output-dir", type=str, default=None,
-                      help="Directory for rendered videos.")
-    g_cfg.add_argument("--filename-pattern", type=str, default=None,
-                      help="Output filename pattern. {outcome} is substituted. "
-                           "Default: 'd20_roll_{outcome:02d}'")
+    g_cfg.add_argument(
+        "--config",
+        type=str,
+        default=None,
+        help="Path to a JSON file with overrides for PipelineConfig.",
+    )
+    g_cfg.add_argument(
+        "--outcomes",
+        type=int,
+        nargs="+",
+        default=None,
+        help="Desired outcomes 1..20. e.g. --outcomes 1 13 20",
+    )
+    g_cfg.add_argument(
+        "--output-dir", type=str, default=None, help="Directory for rendered videos."
+    )
+    g_cfg.add_argument(
+        "--filename-pattern",
+        type=str,
+        default=None,
+        help="Output filename pattern. {outcome} is substituted. Default: 'd20_roll_{outcome:02d}'",
+    )
 
     # --- Render engine & quality ---
     g_render = p.add_argument_group("render engine & quality")
-    g_render.add_argument("--engine", choices=["CYCLES", "BLENDER_EEVEE_NEXT", "BLENDER_EEVEE"],
-                          default=None)
-    g_render.add_argument("--device", choices=["CPU", "GPU"], default=None,
-                          help="Cycles compute device.")
-    g_render.add_argument("--samples", type=int, default=None,
-                          help="Render samples (Cycles) or TAA samples (Eevee).")
-    g_render.add_argument("--no-denoiser", action="store_true",
-                          help="Disable Cycles denoiser.")
+    g_render.add_argument(
+        "--engine", choices=["CYCLES", "BLENDER_EEVEE_NEXT", "BLENDER_EEVEE"], default=None
+    )
+    g_render.add_argument(
+        "--device", choices=["CPU", "GPU"], default=None, help="Cycles compute device."
+    )
+    g_render.add_argument(
+        "--samples", type=int, default=None, help="Render samples (Cycles) or TAA samples (Eevee)."
+    )
+    g_render.add_argument("--no-denoiser", action="store_true", help="Disable Cycles denoiser.")
     g_render.add_argument("--no-motion-blur", action="store_true")
-    g_render.add_argument("--simplify", type=int, default=None, metavar="MAX_SUBDIV",
-                          help="Enable global simplify with given max subdivision level.")
-    g_render.add_argument("--persistent-data", action="store_true",
-                          help="Cycles: keep BVH in memory between frames (faster, more RAM).")
+    g_render.add_argument(
+        "--simplify",
+        type=int,
+        default=None,
+        metavar="MAX_SUBDIV",
+        help="Enable global simplify with given max subdivision level.",
+    )
+    g_render.add_argument(
+        "--persistent-data",
+        action="store_true",
+        help="Cycles: keep BVH in memory between frames (faster, more RAM).",
+    )
 
     # --- Resolution / framerate ---
     g_res = p.add_argument_group("resolution & framerate")
-    g_res.add_argument("--resolution", type=str, default=None, metavar="WIDTHxHEIGHT",
-                       help="e.g. --resolution 1280x720")
-    g_res.add_argument("--resolution-percent", type=int, default=None, metavar="PCT",
-                       help="Quick downscale: 25, 50, 75, 100. Cheaper than changing resolution.")
+    g_res.add_argument(
+        "--resolution",
+        type=str,
+        default=None,
+        metavar="WIDTHxHEIGHT",
+        help="e.g. --resolution 1280x720",
+    )
+    g_res.add_argument(
+        "--resolution-percent",
+        type=int,
+        default=None,
+        metavar="PCT",
+        help="Quick downscale: 25, 50, 75, 100. Cheaper than changing resolution.",
+    )
     g_res.add_argument("--fps", type=int, default=None)
 
     # --- Frame range / preview ---
     g_frames = p.add_argument_group("frame range & preview")
-    g_frames.add_argument("--frame-start", type=int, default=None,
-                          help="Override render start frame.")
-    g_frames.add_argument("--frame-end", type=int, default=None,
-                          help="Override render end frame.")
-    g_frames.add_argument("--single-frame", type=int, default=None, metavar="N",
-                          help="Render only this frame as a PNG. Great for cheap previews.")
-    g_frames.add_argument("--max-sim-frames", type=int, default=None,
-                          help="Cap on simulation length (frames).")
+    g_frames.add_argument(
+        "--frame-start", type=int, default=None, help="Override render start frame."
+    )
+    g_frames.add_argument("--frame-end", type=int, default=None, help="Override render end frame.")
+    g_frames.add_argument(
+        "--single-frame",
+        type=int,
+        default=None,
+        metavar="N",
+        help="Render only this frame as a PNG. Great for cheap previews.",
+    )
+    g_frames.add_argument(
+        "--max-sim-frames", type=int, default=None, help="Cap on simulation length (frames)."
+    )
 
     # --- Output format ---
     g_out = p.add_argument_group("output format")
-    g_out.add_argument("--format", choices=["FFMPEG", "PNG"], default=None,
-                       dest="output_format")
-    g_out.add_argument("--codec", type=str, default=None, dest="ffmpeg_codec",
-                       help="FFmpeg codec, e.g. H264")
-    g_out.add_argument("--quality", choices=["LOW", "MEDIUM", "HIGH", "PERC_LOSSLESS", "LOSSLESS"],
-                       default=None, dest="ffmpeg_quality")
+    g_out.add_argument("--format", choices=["FFMPEG", "PNG"], default=None, dest="output_format")
+    g_out.add_argument(
+        "--codec", type=str, default=None, dest="ffmpeg_codec", help="FFmpeg codec, e.g. H264"
+    )
+    g_out.add_argument(
+        "--quality",
+        choices=["LOW", "MEDIUM", "HIGH", "PERC_LOSSLESS", "LOSSLESS"],
+        default=None,
+        dest="ffmpeg_quality",
+    )
 
     # --- Feature toggles ---
     g_feat = p.add_argument_group("feature toggles")
-    g_feat.add_argument("--no-banner", action="store_true",
-                        help="Disable banner overlay regardless of config.")
-    g_feat.add_argument("--banner-text", type=str, default=None,
-                        help="Override banner text template. {value} is substituted.")
-    g_feat.add_argument("--no-audio", action="store_true",
-                        help="Disable banner audio regardless of config.")
-    g_feat.add_argument("--no-bumpers", action="store_true",
-                        help="Disable invisible table bumpers (die may roll out of frame).")
-    g_feat.add_argument("--no-dof", action="store_true",
-                        help="Disable depth of field (faster render).")
+    g_feat.add_argument(
+        "--no-banner", action="store_true", help="Disable banner overlay regardless of config."
+    )
+    g_feat.add_argument(
+        "--banner-text",
+        type=str,
+        default=None,
+        help="Override banner text template. {value} is substituted.",
+    )
+    g_feat.add_argument(
+        "--no-audio", action="store_true", help="Disable banner audio regardless of config."
+    )
+    g_feat.add_argument(
+        "--no-bumpers",
+        action="store_true",
+        help="Disable invisible table bumpers (die may roll out of frame).",
+    )
+    g_feat.add_argument(
+        "--no-dof", action="store_true", help="Disable depth of field (faster render)."
+    )
     g_feat.add_argument("--no-rim-light", action="store_true")
     g_feat.add_argument("--no-fill-light", action="store_true")
-    g_feat.add_argument("--no-camera-orbit", action="store_true",
-                        help="Disable the post-settle camera move to a top-down close-up.")
-    g_feat.add_argument("--camera-orbit-frames", type=int, default=None, metavar="N",
-                        help="Frames over which the post-settle camera orbit runs.")
-    g_feat.add_argument("--camera-orbit-hold", type=int, default=None, metavar="N",
-                        help="Frames to hold the top-down view after the orbit lands.")
-    g_feat.add_argument("--camera-orbit-distance", type=float, default=None, metavar="M",
-                        help="Camera distance from die center at the end of the orbit (meters).")
-    g_feat.add_argument("--camera-orbit-start-offset", type=int, default=None, metavar="N",
-                        help="Frames to wait after settle before the orbit begins.")
-    g_feat.add_argument("--camera-orbit-tilt", type=float, default=None, metavar="DEG",
-                        help="Degrees off straight-down for the orbit end pose (default 15; 0=exactly overhead).")
-    g_feat.add_argument("--camera-orbit-roll", type=float, default=None, metavar="DEG",
-                        help="Clockwise roll applied to camera at orbit end, in degrees (default 0).")
+    g_feat.add_argument(
+        "--no-camera-orbit",
+        action="store_true",
+        help="Disable the post-settle camera move to a top-down close-up.",
+    )
+    g_feat.add_argument(
+        "--camera-orbit-frames",
+        type=int,
+        default=None,
+        metavar="N",
+        help="Frames over which the post-settle camera orbit runs.",
+    )
+    g_feat.add_argument(
+        "--camera-orbit-hold",
+        type=int,
+        default=None,
+        metavar="N",
+        help="Frames to hold the top-down view after the orbit lands.",
+    )
+    g_feat.add_argument(
+        "--camera-orbit-distance",
+        type=float,
+        default=None,
+        metavar="M",
+        help="Camera distance from die center at the end of the orbit (meters).",
+    )
+    g_feat.add_argument(
+        "--camera-orbit-start-offset",
+        type=int,
+        default=None,
+        metavar="N",
+        help="Frames to wait after settle before the orbit begins.",
+    )
+    g_feat.add_argument(
+        "--camera-orbit-tilt",
+        type=float,
+        default=None,
+        metavar="DEG",
+        help="Degrees off straight-down for the orbit end pose (default 15; 0=exactly overhead).",
+    )
+    g_feat.add_argument(
+        "--camera-orbit-roll",
+        type=float,
+        default=None,
+        metavar="DEG",
+        help="Clockwise roll applied to camera at orbit end, in degrees (default 0).",
+    )
 
     # --- Stages & caching ---
     g_stage = p.add_argument_group("stages & caching")
-    g_stage.add_argument("--no-simulate", action="store_true",
-                         help="Skip physics bake; reuse existing cached simulation.")
-    g_stage.add_argument("--no-render", action="store_true",
-                         help="Stop after simulation. Useful with --save-blend.")
-    g_stage.add_argument("--no-cache", action="store_true",
-                         help="Disable cache hit-checking (always rebuilds).")
+    g_stage.add_argument(
+        "--no-simulate",
+        action="store_true",
+        help="Skip physics bake; reuse existing cached simulation.",
+    )
+    g_stage.add_argument(
+        "--no-render", action="store_true", help="Stop after simulation. Useful with --save-blend."
+    )
+    g_stage.add_argument(
+        "--no-cache", action="store_true", help="Disable cache hit-checking (always rebuilds)."
+    )
     g_stage.add_argument("--cache-dir", type=str, default=None)
-    g_stage.add_argument("--force-physics", action="store_true",
-                         help="Force re-bake even if physics cache key matches.")
-    g_stage.add_argument("--force-render", action="store_true",
-                         help="Force re-render even if output file exists with matching key.")
-    g_stage.add_argument("--force-all", action="store_true",
-                         help="Equivalent to --force-physics --force-render.")
+    g_stage.add_argument(
+        "--force-physics",
+        action="store_true",
+        help="Force re-bake even if physics cache key matches.",
+    )
+    g_stage.add_argument(
+        "--force-render",
+        action="store_true",
+        help="Force re-render even if output file exists with matching key.",
+    )
+    g_stage.add_argument(
+        "--force-all", action="store_true", help="Equivalent to --force-physics --force-render."
+    )
 
     # --- Logging / dry-run ---
     g_log = p.add_argument_group("logging")
     g_log.add_argument("--verbose", "-v", action="store_true")
     g_log.add_argument("--quiet", "-q", action="store_true")
-    g_log.add_argument("--dry-run", action="store_true",
-                       help="Build the scene, log the plan, but skip bake and render.")
-    g_log.add_argument("--log-file", type=str, default=None, metavar="PATH",
-                       help="Path to a log file where the full Blender command line will be recorded.")
+    g_log.add_argument(
+        "--dry-run",
+        action="store_true",
+        help="Build the scene, log the plan, but skip bake and render.",
+    )
+    g_log.add_argument(
+        "--log-file",
+        type=str,
+        default=None,
+        metavar="PATH",
+        help="Path to a log file where the full Blender command line will be recorded.",
+    )
 
     # --- Save the .blend for manual inspection ---
-    g_log.add_argument("--save-blend", type=str, default=None, metavar="PATH",
-                       help="After running, save the Blender file to this path.")
+    g_log.add_argument(
+        "--save-blend",
+        type=str,
+        default=None,
+        metavar="PATH",
+        help="After running, save the Blender file to this path.",
+    )
 
     return p
 
@@ -183,7 +295,7 @@ def _build_parser() -> argparse.ArgumentParser:
 def _parse_args() -> argparse.Namespace:
     argv = sys.argv
     if "--" in argv:
-        argv = argv[argv.index("--") + 1:]
+        argv = argv[argv.index("--") + 1 :]
     else:
         argv = []
     return _build_parser().parse_args(argv)
@@ -193,20 +305,23 @@ def _parse_args() -> argparse.Namespace:
 # Override application
 # ----------------------------------------------------------------------------
 
+
 def _apply_json_overrides(cfg: PipelineConfig, overrides: Dict[str, Any]) -> None:
     """Recursively apply a dict of overrides onto a dataclass tree."""
+
     def merge(obj, ov):
         if not is_dataclass(obj) or not isinstance(ov, dict):
             return
         valid_field_names = {f.name for f in fields(obj)}
         for key, new_val in ov.items():
             if key not in valid_field_names:
-                continue   # silently ignore unknowns (e.g. _comment)
+                continue  # silently ignore unknowns (e.g. _comment)
             cur = getattr(obj, key)
             if is_dataclass(cur) and isinstance(new_val, dict):
                 merge(cur, new_val)
             else:
                 setattr(obj, key, new_val)
+
     merge(cfg, overrides)
 
 
@@ -325,6 +440,7 @@ def _apply_cli_overrides(cfg: PipelineConfig, args: argparse.Namespace) -> None:
 # Main
 # ----------------------------------------------------------------------------
 
+
 def main() -> None:
     args = _parse_args()
     cfg = PipelineConfig()
@@ -340,6 +456,7 @@ def main() -> None:
     # Optionally save the .blend for manual inspection
     if args.save_blend:
         import bpy
+
         save_path = os.path.abspath(args.save_blend)
         os.makedirs(os.path.dirname(save_path) or ".", exist_ok=True)
         bpy.ops.wm.save_as_mainfile(filepath=save_path)

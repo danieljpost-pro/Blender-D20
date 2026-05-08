@@ -39,7 +39,7 @@ def _log_invocation(cfg: PipelineConfig) -> None:
     if "--" in sys.argv:
         dash_idx = sys.argv.index("--")
         blender_args = sys.argv[1:dash_idx]
-        script_args = sys.argv[dash_idx + 1:]
+        script_args = sys.argv[dash_idx + 1 :]
     else:
         blender_args = sys.argv[1:]
         script_args = []
@@ -106,11 +106,7 @@ def run(cfg: PipelineConfig) -> None:
             except OSError:
                 cached_key = None
 
-        if (
-            cfg.cache.enabled
-            and not cfg.cache.force_physics
-            and cached_key == phys_key
-        ):
+        if cfg.cache.enabled and not cfg.cache.force_physics and cached_key == phys_key:
             log.stage("physics", f"cache HIT (key={phys_key}) — loading baked cache")
             log.info("Physics cache loaded from disk")
         else:
@@ -143,11 +139,10 @@ def run(cfg: PipelineConfig) -> None:
     if cfg.camera.orbit_enabled:
         bpy.context.scene.frame_set(settle_frame)
         from .die import get_labelled_face_normals
+
         local_n = get_labelled_face_normals(die_obj)[up_face]
         world_up = die_obj.matrix_world.to_3x3() @ local_n
-        orbit_end = scene_mod.animate_camera_orbit(
-            cam, die_obj, settle_frame, world_up, cfg.camera
-        )
+        orbit_end = scene_mod.animate_camera_orbit(cam, die_obj, settle_frame, world_up, cfg.camera)
         new_end = max(bpy.context.scene.frame_start, orbit_end)
         if new_end < bpy.context.scene.frame_end:
             log.info(
@@ -212,8 +207,13 @@ def _clear_scene() -> None:
     bpy.ops.object.delete(use_global=False)
 
     for collection in (
-        bpy.data.meshes, bpy.data.materials, bpy.data.lights,
-        bpy.data.cameras, bpy.data.curves, bpy.data.images, bpy.data.fonts,
+        bpy.data.meshes,
+        bpy.data.materials,
+        bpy.data.lights,
+        bpy.data.cameras,
+        bpy.data.curves,
+        bpy.data.images,
+        bpy.data.fonts,
     ):
         for block in list(collection):
             if block.users == 0:

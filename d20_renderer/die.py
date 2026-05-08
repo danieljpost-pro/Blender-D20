@@ -52,11 +52,12 @@ def build_die(cfg: DieConfig, with_labels: bool = True) -> "Object":
 # Geometry
 # ----------------------------------------------------------------------------
 
+
 def _build_icosahedron_mesh(cfg: DieConfig) -> "Object":
     bpy.ops.mesh.primitive_ico_sphere_add(
-        subdivisions=1,           # subdivisions=1 gives the 20-face icosahedron
+        subdivisions=1,  # subdivisions=1 gives the 20-face icosahedron
         radius=cfg.size,
-        location=(0, 0, 0),       # placement done later by physics module
+        location=(0, 0, 0),  # placement done later by physics module
     )
     die = bpy.context.active_object
     die.name = "Die"
@@ -84,13 +85,16 @@ def _apply_bevel(die: "Object", cfg: DieConfig) -> None:
     die.select_set(True)
     bpy.context.view_layer.objects.active = die
     bpy.ops.object.modifier_apply(modifier="Bevel")
-    log.debug(f"die.bevel: applied (width={cfg.bevel_amount}, segments={cfg.bevel_segments}); "
-              f"polygons {before} -> {len(die.data.polygons)}")
+    log.debug(
+        f"die.bevel: applied (width={cfg.bevel_amount}, segments={cfg.bevel_segments}); "
+        f"polygons {before} -> {len(die.data.polygons)}"
+    )
 
 
 # ----------------------------------------------------------------------------
 # Material
 # ----------------------------------------------------------------------------
+
 
 def _apply_body_material(die: "Object", cfg: DieConfig) -> None:
     mat = bpy.data.materials.new(name="DieBody")
@@ -124,6 +128,7 @@ def _apply_body_material(die: "Object", cfg: DieConfig) -> None:
 # Rigid body
 # ----------------------------------------------------------------------------
 
+
 def _setup_rigid_body(die: "Object", cfg: DieConfig) -> None:
     bpy.ops.object.select_all(action="DESELECT")
     die.select_set(True)
@@ -144,6 +149,7 @@ def _setup_rigid_body(die: "Object", cfg: DieConfig) -> None:
 # ----------------------------------------------------------------------------
 # Face labels
 # ----------------------------------------------------------------------------
+
 
 def get_face_centers_and_normals(die: "Object") -> List[Tuple[int, Vector, Vector]]:
     """
@@ -212,7 +218,9 @@ def _build_face_labels(die: "Object", cfg: DieConfig) -> List["Object"]:
             except RuntimeError:
                 pass  # fall back to default
         if cfg.font_bold:
-            txt.data.font_bold = txt.data.font  # crude bold; replace with real bold .ttf for production
+            txt.data.font_bold = (
+                txt.data.font
+            )  # crude bold; replace with real bold .ttf for production
 
         # Orient: place at face center, push out along normal by `lift`,
         # rotate so the text's local +Z aligns with the face normal.
@@ -254,6 +262,7 @@ def _icosahedron_inradius(circumradius: float) -> float:
     # r_in = (sqrt(3)/12) * (3 + sqrt(5)) * a, where a = edge length
     # a = circumradius * 4 / sqrt(10 + 2*sqrt(5))
     import math
+
     a = circumradius * 4.0 / math.sqrt(10 + 2 * math.sqrt(5))
     return (math.sqrt(3) / 12.0) * (3 + math.sqrt(5)) * a
 
@@ -261,6 +270,7 @@ def _icosahedron_inradius(circumradius: float) -> float:
 # ----------------------------------------------------------------------------
 # Face value (re)assignment
 # ----------------------------------------------------------------------------
+
 
 def _apply_initial_face_values(labels: List["Object"], values: List[int]) -> None:
     """Set the text body of each label to its initial assigned value."""
@@ -284,9 +294,7 @@ def assign_outcome_to_face(die: "Object", up_face_index: int, desired_value: int
     relationships that don't occur on a real D20.
     """
     labels_by_face = {
-        int(c.name.split("_")[1]): c
-        for c in die.children
-        if c.name.startswith("DieLabel_")
+        int(c.name.split("_")[1]): c for c in die.children if c.name.startswith("DieLabel_")
     }
     current = {idx: int(lbl.data.body) for idx, lbl in labels_by_face.items()}
 

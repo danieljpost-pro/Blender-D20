@@ -32,6 +32,7 @@ from .config import BannerAudioConfig, BannerConfig
 # Public API
 # ----------------------------------------------------------------------------
 
+
 def setup_banner_audio(
     audio_cfg: BannerAudioConfig,
     banner_cfg: BannerConfig,
@@ -103,6 +104,7 @@ def setup_banner_audio(
 # Helpers
 # ----------------------------------------------------------------------------
 
+
 def _ensure_sequence_editor():
     scene = bpy.context.scene
     if scene.sequence_editor is None:
@@ -163,6 +165,7 @@ def _compute_banner_end_frame(banner_cfg: BannerConfig, trigger_frame: int) -> i
 # ----------------------------------------------------------------------------
 # Strip creation
 # ----------------------------------------------------------------------------
+
 
 def _add_sting(seq_editor, path: str, frame: int, volume: float) -> None:
     """Add a one-shot sound strip at `frame`."""

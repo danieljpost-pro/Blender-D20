@@ -6,6 +6,7 @@ Run:  blender --background --python-use-system-env --python scripts/probe_die.py
 """
 
 import sys, os
+
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 import bpy
@@ -42,7 +43,9 @@ print(f"matrix_world.to_3x3():\n{die.matrix_world.to_3x3()}")
 
 print("\n=== first 3 face polygons (raw mesh data) ===")
 for poly in list(die.data.polygons)[:3]:
-    print(f"  idx={poly.index} center={poly.center} normal={poly.normal} normal_len={poly.normal.length:.4f}")
+    print(
+        f"  idx={poly.index} center={poly.center} normal={poly.normal} normal_len={poly.normal.length:.4f}"
+    )
 
 print("\n=== applying world rotation manually ===")
 rot_3x3 = die.matrix_world.to_3x3()
@@ -50,8 +53,10 @@ for poly in list(die.data.polygons)[:5]:
     if poly.index >= 20:
         continue
     wn = rot_3x3 @ poly.normal
-    print(f"  face {poly.index}: local_n={tuple(round(x,3) for x in poly.normal)} "
-          f"world_n={tuple(round(x,3) for x in wn)} world_n.z={wn.z:.4f}")
+    print(
+        f"  face {poly.index}: local_n={tuple(round(x, 3) for x in poly.normal)} "
+        f"world_n={tuple(round(x, 3) for x in wn)} world_n.z={wn.z:.4f}"
+    )
 
 print("\n=== ALL 20 face world-space normals (sorted by .z desc) ===")
 all_world = []
@@ -62,7 +67,7 @@ for poly in die.data.polygons:
     all_world.append((poly.index, wn.z, wn))
 all_world.sort(key=lambda t: t[1], reverse=True)
 for idx, z, wn in all_world:
-    print(f"  face {idx:2d}  z={z:+.4f}  world_n={tuple(round(x,3) for x in wn)}")
+    print(f"  face {idx:2d}  z={z:+.4f}  world_n={tuple(round(x, 3) for x in wn)}")
 
 print("\n=== matrix_world (full 4x4) ===")
 print(die.matrix_world)
@@ -78,6 +83,8 @@ for lbl in labels:
     pos = lbl.matrix_world.translation
     # Vector from die centroid to label = the face's outward direction
     face_dir = (pos - die_centroid).normalized()
-    print(f"  {lbl.name} body={lbl.data.body!r:>5}  "
-          f"world_pos=({pos.x:+.3f},{pos.y:+.3f},{pos.z:+.3f})  "
-          f"face_dir.z={face_dir.z:+.4f}")
+    print(
+        f"  {lbl.name} body={lbl.data.body!r:>5}  "
+        f"world_pos=({pos.x:+.3f},{pos.y:+.3f},{pos.z:+.3f})  "
+        f"face_dir.z={face_dir.z:+.4f}"
+    )

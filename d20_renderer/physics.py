@@ -72,9 +72,11 @@ def apply_initial_throw(die: "Object", cfg: PhysicsConfig) -> None:
     # position so the solver picks up the implied velocity.
     fps = scene.render.fps
     dt = 1.0 / fps
-    log.debug(f"physics.throw: pos={cfg.initial_position}, rot={cfg.initial_rotation_euler}, "
-              f"linear_v={cfg.initial_linear_velocity}, angular_v={cfg.initial_angular_velocity}, "
-              f"fps={fps}, dt={dt:.4f}")
+    log.debug(
+        f"physics.throw: pos={cfg.initial_position}, rot={cfg.initial_rotation_euler}, "
+        f"linear_v={cfg.initial_linear_velocity}, angular_v={cfg.initial_angular_velocity}, "
+        f"fps={fps}, dt={dt:.4f}"
+    )
     next_pos = Vector(cfg.initial_position) + Vector(cfg.initial_linear_velocity) * dt
     # We need the die kinematic for frame 1 -> 2 to drive it, then release.
     rb = die.rigid_body
@@ -109,6 +111,7 @@ def bake_simulation(cfg: PhysicsConfig) -> None:
 # Settle detection
 # ----------------------------------------------------------------------------
 
+
 def find_settle_frame(die: "Object", cfg: PhysicsConfig) -> int:
     """
     Step through baked frames and find the first frame at which the die has
@@ -133,8 +136,8 @@ def find_settle_frame(die: "Object", cfg: PhysicsConfig) -> int:
         rot = Vector(die.matrix_world.to_euler())
 
         if prev_loc is not None:
-            dloc = (loc - prev_loc).length * fps              # ~m/s
-            drot = (rot - prev_rot).length * fps              # ~rad/s
+            dloc = (loc - prev_loc).length * fps  # ~m/s
+            drot = (rot - prev_rot).length * fps  # ~rad/s
             if dloc < threshold and drot < threshold:
                 quiet_streak += 1
                 if quiet_streak >= required:
@@ -148,12 +151,16 @@ def find_settle_frame(die: "Object", cfg: PhysicsConfig) -> int:
 
     if settle_frame is None:
         # Fallback: assume settled at the end of the cap
-        log.debug(f"physics.settle: never reached threshold={threshold} for {required} consec frames; "
-                  f"falling back to max_simulation_frames={cfg.max_simulation_frames}")
+        log.debug(
+            f"physics.settle: never reached threshold={threshold} for {required} consec frames; "
+            f"falling back to max_simulation_frames={cfg.max_simulation_frames}"
+        )
         settle_frame = cfg.max_simulation_frames
     else:
-        log.debug(f"physics.settle: settled at frame {settle_frame} "
-                  f"(threshold={threshold}, required_streak={required})")
+        log.debug(
+            f"physics.settle: settled at frame {settle_frame} "
+            f"(threshold={threshold}, required_streak={required})"
+        )
     return settle_frame
 
 
@@ -185,7 +192,9 @@ def find_up_face(die: "Object", at_frame: int) -> int:
             best_dot = d
             best_idx = face_idx
     candidates.sort(key=lambda x: x[1], reverse=True)
-    log.debug(f"physics.up_face@frame{at_frame}: scanned {len(candidates)} labelled faces; "
-              f"top 3 (idx, +Z dot) = {[(i, round(d, 4)) for i, d in candidates[:3]]}; "
-              f"picked face={best_idx}")
+    log.debug(
+        f"physics.up_face@frame{at_frame}: scanned {len(candidates)} labelled faces; "
+        f"top 3 (idx, +Z dot) = {[(i, round(d, 4)) for i, d in candidates[:3]]}; "
+        f"picked face={best_idx}"
+    )
     return best_idx

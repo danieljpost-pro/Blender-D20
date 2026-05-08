@@ -30,24 +30,25 @@ RGBA = Tuple[float, float, float, float]
 # Table / environment
 # ----------------------------------------------------------------------------
 
+
 @dataclass
 class TableConfig:
     """The surface the die rolls on, plus optional bumper walls."""
 
-    size: Vec3 = (0.6, 0.6, 0.02)              # x, y, z extents (meters). z = thickness
-    location: Vec3 = (0.0, 0.0, 0.0)           # center of the table top surface
-    rotation_euler: Vec3 = (0.0, 0.0, 0.0)     # tilt the table if you want a slope
-    color: RGBA = (0.06, 0.14, 0.08, 1.0)      # dark felt-green
+    size: Vec3 = (0.6, 0.6, 0.02)  # x, y, z extents (meters). z = thickness
+    location: Vec3 = (0.0, 0.0, 0.0)  # center of the table top surface
+    rotation_euler: Vec3 = (0.0, 0.0, 0.0)  # tilt the table if you want a slope
+    color: RGBA = (0.06, 0.14, 0.08, 1.0)  # dark felt-green
     roughness: float = 0.85
-    friction: float = 0.8                       # surface friction for the rigid body
-    restitution: float = 0.3                    # how bouncy the surface is
-    texture_path: Optional[str] = None          # optional image texture (felt, wood, etc.)
-    normal_map_path: Optional[str] = None       # optional normal map for surface detail
+    friction: float = 0.8  # surface friction for the rigid body
+    restitution: float = 0.3  # how bouncy the surface is
+    texture_path: Optional[str] = None  # optional image texture (felt, wood, etc.)
+    normal_map_path: Optional[str] = None  # optional normal map for surface detail
 
     # Bumpers: invisible walls to keep the die in frame.
     bumpers_enabled: bool = True
-    bumpers_height: float = 0.10                # meters above the table top
-    bumpers_visible: bool = False               # render them or just collide with them
+    bumpers_height: float = 0.10  # meters above the table top
+    bumpers_visible: bool = False  # render them or just collide with them
     bumpers_restitution: float = 0.4
     bumpers_friction: float = 0.5
 
@@ -56,31 +57,32 @@ class TableConfig:
 # The die itself
 # ----------------------------------------------------------------------------
 
+
 @dataclass
 class DieConfig:
     """Geometry, material, and per-face numbering of the D20."""
 
     # Geometry
-    size: float = 0.025                         # circumradius in meters (~25mm die)
-    bevel_amount: float = 0.0015                # rounded edges; affects look AND bounce
+    size: float = 0.025  # circumradius in meters (~25mm die)
+    bevel_amount: float = 0.0015  # rounded edges; affects look AND bounce
     bevel_segments: int = 3
-    subdivision_levels: int = 0                 # 0 for sharp icosahedron faces
+    subdivision_levels: int = 0  # 0 for sharp icosahedron faces
 
     # Body material
     body_color: RGBA = (0.55, 0.06, 0.05, 1.0)  # saturated deep red
     body_roughness: float = 0.35
     body_metallic: float = 0.0
-    body_ior: float = 1.45                      # ~resin / acrylic
-    body_transmission: float = 0.08             # slight translucency for resin look
-    body_subsurface: float = 0.12               # subsurface scatter for translucent depth
+    body_ior: float = 1.45  # ~resin / acrylic
+    body_transmission: float = 0.08  # slight translucency for resin look
+    body_subsurface: float = 0.12  # subsurface scatter for translucent depth
 
     # Number engraving
     number_color: RGBA = (0.02, 0.02, 0.02, 1.0)  # matte black ink
-    number_roughness: float = 0.95                # matte finish; high = non-reflective
+    number_roughness: float = 0.95  # matte finish; high = non-reflective
     number_style: Literal["decal", "inset", "raised"] = "decal"
-    number_inset_depth: float = 0.0006          # only used for inset/raised
-    font_path: Optional[str] = None             # path to .ttf/.otf; None = Blender default
-    font_scale: float = 0.55                    # fraction of face inradius
+    number_inset_depth: float = 0.0006  # only used for inset/raised
+    font_path: Optional[str] = None  # path to .ttf/.otf; None = Blender default
+    font_scale: float = 0.55  # fraction of face inradius
     font_bold: bool = True
 
     # Face value layout. Index i (0..19) maps to the number printed on the
@@ -90,12 +92,12 @@ class DieConfig:
     face_values: List[int] = field(default_factory=lambda: list(range(1, 21)))
 
     # Physics-only properties
-    mass: float = 0.012                          # kg (~12g, typical D20)
+    mass: float = 0.012  # kg (~12g, typical D20)
     friction: float = 0.5
     restitution: float = 0.35
     linear_damping: float = 0.04
     angular_damping: float = 0.10
-    collision_margin: float = 0.0002             # Bullet quirk; small but nonzero
+    collision_margin: float = 0.0002  # Bullet quirk; small but nonzero
     collision_shape: Literal["CONVEX_HULL", "MESH"] = "CONVEX_HULL"
 
 
@@ -103,12 +105,13 @@ class DieConfig:
 # Physics / simulation
 # ----------------------------------------------------------------------------
 
+
 @dataclass
 class PhysicsConfig:
     """World-level physics and the initial throw."""
 
     gravity: Vec3 = (0.0, 0.0, -9.81)
-    substeps_per_frame: int = 10                 # higher = more stable, slower
+    substeps_per_frame: int = 10  # higher = more stable, slower
     solver_iterations: int = 10
 
     # Initial throw (the die starts mid-air, mid-tumble — see earlier discussion
@@ -116,48 +119,50 @@ class PhysicsConfig:
     # not reversing here, a mid-air start just looks more natural anyway).
     initial_position: Vec3 = (0.0, 0.0, 0.15)  # centered above table
     initial_rotation_euler: Vec3 = (0.5, 1.2, 0.3)
-    initial_linear_velocity: Vec3 = (2.2, -1.0, 0.35)   # m/s (increased for more dramatic throw)
-    initial_angular_velocity: Vec3 = (20.0, 15.0, 25.0) # rad/s (increased for more tumbling)
+    initial_linear_velocity: Vec3 = (2.2, -1.0, 0.35)  # m/s (increased for more dramatic throw)
+    initial_angular_velocity: Vec3 = (20.0, 15.0, 25.0)  # rad/s (increased for more tumbling)
 
     # Simulation bounds
-    max_simulation_frames: int = 360             # ~15s at 24fps for better balance of motion + settle
-    settle_velocity_threshold: float = 0.01      # die is "settled" when vel & ang vel below this
-    settle_required_frames: int = 8              # must stay below threshold this many frames
+    max_simulation_frames: int = 360  # ~15s at 24fps for better balance of motion + settle
+    settle_velocity_threshold: float = 0.01  # die is "settled" when vel & ang vel below this
+    settle_required_frames: int = 8  # must stay below threshold this many frames
 
     # Determinism
-    bake_cache: bool = True                      # bake to disk so re-renders are identical
+    bake_cache: bool = True  # bake to disk so re-renders are identical
 
 
 # ----------------------------------------------------------------------------
 # Camera
 # ----------------------------------------------------------------------------
 
+
 @dataclass
 class CameraConfig:
     location: Vec3 = (0.0, -0.32, 0.12)
-    look_at: Vec3 = (0.0, 0.05, 0.07)            # aim at die action area
+    look_at: Vec3 = (0.0, 0.05, 0.07)  # aim at die action area
     focal_length_mm: float = 35.0  # wider lens for better framing
     sensor_width_mm: float = 36.0
     dof_enabled: bool = True
     dof_fstop: float = 2.8
-    dof_focus_object: Optional[str] = "Die"      # name of object to focus on
-    track_die: bool = False                       # if True, camera re-aims at die each frame
+    dof_focus_object: Optional[str] = "Die"  # name of object to focus on
+    track_die: bool = False  # if True, camera re-aims at die each frame
 
     # Post-settle orbit: after the die comes to rest, smoothly move the camera
     # over `orbit_duration_frames` to a top-down close-up of the up-facing face,
     # then hold for `orbit_hold_frames`. Drives the final-shot composition.
     orbit_enabled: bool = True
-    orbit_start_offset_frames: int = 6           # wait after settle before orbit begins
-    orbit_duration_frames: int = 36              # 1.5s @ 24fps
-    orbit_hold_frames: int = 24                  # 1s held on top-down view
-    orbit_end_distance: float = 0.18             # camera distance from die center at end (m)
-    orbit_end_tilt_deg: float = 15.0             # degrees off straight-down; 0 = exactly overhead
-    orbit_end_roll_deg: float = 0.0              # clockwise roll applied at orbit end (degrees)
+    orbit_start_offset_frames: int = 6  # wait after settle before orbit begins
+    orbit_duration_frames: int = 36  # 1.5s @ 24fps
+    orbit_hold_frames: int = 24  # 1s held on top-down view
+    orbit_end_distance: float = 0.18  # camera distance from die center at end (m)
+    orbit_end_tilt_deg: float = 15.0  # degrees off straight-down; 0 = exactly overhead
+    orbit_end_roll_deg: float = 0.0  # clockwise roll applied at orbit end (degrees)
 
 
 # ----------------------------------------------------------------------------
 # Lighting
 # ----------------------------------------------------------------------------
+
 
 @dataclass
 class LightingConfig:
@@ -166,13 +171,13 @@ class LightingConfig:
     key_type: Literal["AREA", "SUN", "POINT", "SPOT"] = "AREA"
     key_location: Vec3 = (0.4, -0.3, 0.6)
     key_rotation_euler: Vec3 = (0.7, 0.3, 0.5)
-    key_color: RGBA = (0.12, 0.12, 1.0, 1.0)      # deep blue
+    key_color: RGBA = (0.12, 0.12, 1.0, 1.0)  # deep blue
     key_energy: float = 25.0
-    key_size: float = 0.4                         # area light size
+    key_size: float = 0.4  # area light size
 
     fill_enabled: bool = True
     fill_location: Vec3 = (-0.5, -0.2, 0.4)
-    fill_color: RGBA = (1.0, 0.97, 0.78, 1.0)     # pale yellow
+    fill_color: RGBA = (1.0, 0.97, 0.78, 1.0)  # pale yellow
     fill_energy: float = 8.0
 
     rim_enabled: bool = True
@@ -181,16 +186,19 @@ class LightingConfig:
     rim_energy: float = 35.0
 
     # Environment
-    hdri_path: Optional[str] = None               # if set, overrides background color
+    hdri_path: Optional[str] = None  # if set, overrides background color
     hdri_strength: float = 1.0
     hdri_rotation_z: float = 0.0
     background_color: RGBA = (0.05, 0.05, 0.06, 1.0)
-    background_strength: float = 3.0             # world ambient strength; higher = more fill from all directions
+    background_strength: float = (
+        3.0  # world ambient strength; higher = more fill from all directions
+    )
 
 
 # ----------------------------------------------------------------------------
 # Banner audio (optional sound effect + ambience layered with the banner)
 # ----------------------------------------------------------------------------
+
 
 @dataclass
 class BannerAudioConfig:
@@ -218,9 +226,11 @@ class BannerAudioConfig:
     # --- Sting (one-shot SFX) ---
     sting_enabled: bool = True
     sting_default_path: Optional[str] = None
-    sting_per_outcome: dict = field(default_factory=dict)  # {20: "/path/crit.wav", 1: "/path/fail.wav"}
+    sting_per_outcome: dict = field(
+        default_factory=dict
+    )  # {20: "/path/crit.wav", 1: "/path/fail.wav"}
     sting_volume: float = 1.0
-    sting_offset_frames: int = 0          # +/- frames relative to banner trigger
+    sting_offset_frames: int = 0  # +/- frames relative to banner trigger
 
     # --- Ambience (background loop) ---
     ambience_enabled: bool = False
@@ -240,6 +250,7 @@ class BannerAudioConfig:
 # ----------------------------------------------------------------------------
 # Banner overlay ("You rolled a 20!")
 # ----------------------------------------------------------------------------
+
 
 @dataclass
 class BannerConfig:
@@ -269,37 +280,38 @@ class BannerConfig:
     # Position (normalized: 0,0 = bottom-left, 1,1 = top-right)
     anchor: Literal["top", "center", "bottom"] = "bottom"
     horizontal_align: Literal["left", "center", "right"] = "center"
-    margin_px: int = 80                           # distance from anchor edge
+    margin_px: int = 80  # distance from anchor edge
 
     # Animation
     scroll_direction: Literal["left", "right", "up", "down", "none"] = "left"
-    scroll_duration_frames: int = 24              # frames to scroll fully into place
+    scroll_duration_frames: int = 24  # frames to scroll fully into place
     fade_in: bool = True
     fade_duration_frames: int = 12
-    hold_frames: int = 60                         # how long it stays after arriving
+    hold_frames: int = 60  # how long it stays after arriving
     fade_out: bool = True
 
     # Timing — when does the banner start, relative to the simulation?
     # "after_settle" = trigger the moment the die has come to rest.
     # "absolute" = trigger at `trigger_frame` regardless.
     trigger_mode: Literal["after_settle", "absolute"] = "after_settle"
-    trigger_frame_offset: int = 6                 # frames after settle to start
-    trigger_frame_absolute: int = 120             # only used if trigger_mode == "absolute"
+    trigger_frame_offset: int = 6  # frames after settle to start
+    trigger_frame_absolute: int = 120  # only used if trigger_mode == "absolute"
 
 
 # ----------------------------------------------------------------------------
 # Render settings
 # ----------------------------------------------------------------------------
 
+
 @dataclass
 class RenderConfig:
     engine: Literal["CYCLES", "BLENDER_EEVEE_NEXT", "BLENDER_EEVEE"] = "CYCLES"
     resolution_x: int = 1920
     resolution_y: int = 1080
-    resolution_percentage: int = 100              # 25/50/75/100 — quick downscale lever
+    resolution_percentage: int = 100  # 25/50/75/100 — quick downscale lever
     fps: int = 30
-    samples: int = 128                            # Cycles samples
-    use_denoiser: bool = False                    # bundled Blender lacks OIDN support
+    samples: int = 128  # Cycles samples
+    use_denoiser: bool = False  # bundled Blender lacks OIDN support
     use_motion_blur: bool = True
     motion_blur_shutter: float = 0.5
     output_format: Literal["FFMPEG", "PNG"] = "FFMPEG"
@@ -310,10 +322,10 @@ class RenderConfig:
 
     # --- Hardware levers ---
     device: Literal["CPU", "GPU"] = "CPU"
-    persistent_data: bool = False                  # Cycles: keep BVH in memory between frames
-    simplify_enabled: bool = False                 # global geometry/shadow simplify
-    simplify_subdivision: int = 2                  # max subdiv level when simplify_enabled
-    tile_size: int = 2048                          # Cycles tile size
+    persistent_data: bool = False  # Cycles: keep BVH in memory between frames
+    simplify_enabled: bool = False  # global geometry/shadow simplify
+    simplify_subdivision: int = 2  # max subdiv level when simplify_enabled
+    tile_size: int = 2048  # Cycles tile size
 
     # --- Frame range overrides ---
     # If set, only render this slice [start, end] instead of the full simulation
@@ -336,6 +348,7 @@ class RenderConfig:
 # Caching & incremental execution
 # ----------------------------------------------------------------------------
 
+
 @dataclass
 class CacheConfig:
     """
@@ -347,22 +360,24 @@ class CacheConfig:
     Use `force_*` flags to override individual stages, or `--force-all` from
     the CLI to bust everything.
     """
+
     enabled: bool = True
     cache_dir: str = "./.d20_cache"
 
     # Force flags — re-do the stage even if the cache key matches.
-    force_physics: bool = False                    # rebuild + rebake physics
-    force_banner_image: bool = False               # regenerate banner PNG
-    force_render: bool = False                     # re-render even if output exists
+    force_physics: bool = False  # rebuild + rebake physics
+    force_banner_image: bool = False  # regenerate banner PNG
+    force_render: bool = False  # re-render even if output exists
 
 
 @dataclass
 class LoggingConfig:
     """Verbosity and dry-run controls."""
+
     verbose: bool = False
-    quiet: bool = False                            # suppress all but warnings/errors
-    dry_run: bool = False                          # build scene + log plan, skip bake/render
-    log_file: Optional[str] = None                 # path to log file for recording invocations
+    quiet: bool = False  # suppress all but warnings/errors
+    dry_run: bool = False  # build scene + log plan, skip bake/render
+    log_file: Optional[str] = None  # path to log file for recording invocations
 
 
 @dataclass
@@ -372,16 +387,17 @@ class StageConfig:
     the individual feature flags (banner.enabled, banner_audio.enabled, etc.)
     — use these to skip whole phases of the pipeline.
     """
-    do_simulate: bool = True                       # run + bake physics (False = use existing cache)
-    do_render: bool = True                         # render videos (False = stop after sim)
+
+    do_simulate: bool = True  # run + bake physics (False = use existing cache)
+    do_render: bool = True  # render videos (False = stop after sim)
     # If both above are False, you get a scene-build-only run, useful for
     # opening the .blend in the GUI to inspect manually.
-
 
 
 @dataclass
 class PipelineConfig:
     """Top-level config — pass one of these to the pipeline."""
+
     table: TableConfig = field(default_factory=TableConfig)
     die: DieConfig = field(default_factory=DieConfig)
     physics: PhysicsConfig = field(default_factory=PhysicsConfig)
