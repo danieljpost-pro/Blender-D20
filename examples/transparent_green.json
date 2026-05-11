@@ -1,34 +1,46 @@
 {
   "_comment": "Classic translucent green resin D20 with very subtle subsurface scattering. No banner or audio — clean roll only.",
   "camera": {
-    "orbit_start_offset_frames": -40,
-    "track_die": "True"
+    "location": [
+      0.0,
+      0.0,
+      0.3
+    ],
+    "orbit_start_offset_frames": -50,
+    "track_die": "True",
+    "orbit_hold_frames": 60,
+    "SOLVED_orbit_hold_frames": 120
   },
   "physics": {
-    "initial_linear_velocity": [
-      0.0,
+    "not initial_linear_velocity": [
       2.0,
-      0.0
+      0,
+      1
+    ],
+    "initial_linear_velocity": [
+      2.0,
+      4.3,
+      1.1
     ],
     "initial_angular_velocity": [
-      22.0,
-      4.0,
-      10.0
+      24.0,
+      5.1,
+      5.0
     ],
-    "settle_velocity_threshold": 0.02
+    "settle_velocity_threshold": 0.04
   },
   "die": {
-    "size": 0.02,
+    "size": 0.025,
     "body_color": [
       0.005,
       0.4,
       0.002,
       1.0
     ],
-    "body_roughness": 0.25,
-    "body_transmission": 0.001,
+    "body_roughness": 0.0,
+    "body_transmission": 0.02,
     "body_subsurface": 0.15,
-    "body_metallic": 0.1,
+    "body_metallic": 0.3,
     "body_ior": 1.5,
     "number_color": [
       0.0,
@@ -37,12 +49,17 @@
       1.0
     ],
     "number_style": "inset",
-    "number_inset_depth": 0.004,
-    "bevel_amount": 0.0004,
-    "bevel_segments": 1,
+    "number_inset_depth": 0.01,
+    "bevel_amount": 0.0,
+    "bevel_segments": 0,
     "font_scale": 0.5
   },
   "table": {
+    "size": [
+      10.25,
+      10.25,
+      0.000001
+    ],
     "rotation_euler": [
       0.0,
       0.0,
@@ -54,22 +71,18 @@
       0.0,
       0.0
     ],
-    "roughness": 1.0,
+    "roughness": 100.0,
     "friction": 0.75,
     "restitution": 0.3,
     "normal_map_path": null,
     "bumpers_enabled": true,
-    "bumpers_height": 0.7,
+    "bumpers_height": 1.0,
     "bumpers_visible": false,
     "bumpers_restitution": 0.4,
-    "bumpers_friction": 0.5,
-    "bumpers_roughness": 1.0
+    "bumpers_friction": 0.2,
+    "bumpers_roughness": 100.0
   },
   "lighting": {
-    "key_energy": 20.0,
-    "key_size": 20.0,
-    "fill_energy": 2.0,
-    "rim_energy": 3.0,
     "ambient_energy": 0.5,
     "background_roughness": 0.0,
     "background_metallic": 0.0,
@@ -77,22 +90,35 @@
     "background_ior": 1.5,
     "background_transmission": 0.04,
     "background_subsurface": 0.02,
+    "fill_enabled": "True",
+    "fill_size": 4.0,
+    "fill_energy": 4.0,
     "fill_color": [
-      1.0,
-      0.4,
-      0.4,
+      0.2,
+      0.3,
+      0.5,
       1.0
     ],
+    "key_enabled": "True",
+    "key_size": 14.0,
+    "key_energy": 40.0,
+    "key_color": [
+      0.5,
+      0.1,
+      0.2,
+      1.0
+    ],
+    "rim_energy": 5.0,
     "rim_color": [
+      0.0,
       0.4,
-      0.4,
-      0.9,
+      0.0,
       1.0
     ],
     "ambient_color": [
-      0.1,
-      0.1,
-      0.1,
+      0.0,
+      0.0,
+      0.0,
       1.0
     ],
     "background_color": [
@@ -103,16 +129,14 @@
     ]
   },
   "render": {
-    "fps": 24,
-    "use_motion_blur": true,
+    "fps": 30,
+    "SOLVED_use_motion_blur": true,
+    "use_motion_blur": false,
     "resolution_percentage": 25,
-    "resolution_x": 600,
-    "resolution_y": 800
+    "resolution_x": 400,
+    "resolution_y": 600
   },
   "banner": {
     "enabled": false
-  },
-  "desired_outcomes": [
-    19
-  ]
+  }
 }
