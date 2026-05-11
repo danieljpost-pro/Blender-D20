@@ -1,33 +1,29 @@
 {
   "_comment": "Classic translucent green resin D20 with very subtle subsurface scattering. No banner or audio — clean roll only.",
   "camera": {
+    "focal_length_mm": 35.0,
     "location": [
       0.0,
       0.0,
-      0.3
+      0.1
     ],
-    "orbit_start_offset_frames": -50,
+    "orbit_start_offset_frames": -74,
     "track_die": "True",
-    "orbit_hold_frames": 60,
+    "orbit_hold_frames": 70,
     "SOLVED_orbit_hold_frames": 120
   },
   "physics": {
-    "not initial_linear_velocity": [
-      2.0,
-      0,
-      1
-    ],
     "initial_linear_velocity": [
       2.0,
       4.3,
       1.1
     ],
     "initial_angular_velocity": [
-      24.0,
-      5.1,
-      5.0
+      0.0,
+      0.0,
+      69.0
     ],
-    "settle_velocity_threshold": 0.04
+    "settle_velocity_threshold": 0.02
   },
   "die": {
     "size": 0.025,
@@ -56,8 +52,8 @@
   },
   "table": {
     "size": [
-      10.25,
-      10.25,
+      0.8,
+      0.8,
       0.000001
     ],
     "rotation_euler": [
@@ -71,70 +67,77 @@
       0.0,
       0.0
     ],
-    "roughness": 100.0,
+    "roughness": 1000.0,
     "friction": 0.75,
     "restitution": 0.3,
     "normal_map_path": null,
     "bumpers_enabled": true,
-    "bumpers_height": 1.0,
-    "bumpers_visible": false,
+    "bumpers_height": 0.1,
+    "bumpers_visible": "True",
     "bumpers_restitution": 0.4,
     "bumpers_friction": 0.2,
-    "bumpers_roughness": 100.0
+    "bumpers_roughness": 0.0
   },
   "lighting": {
-    "ambient_energy": 0.5,
     "background_roughness": 0.0,
     "background_metallic": 0.0,
-    "background_strength": 3.0,
+    "background_strength": 0.0,
     "background_ior": 1.5,
-    "background_transmission": 0.04,
-    "background_subsurface": 0.02,
-    "fill_enabled": "True",
-    "fill_size": 4.0,
-    "fill_energy": 4.0,
-    "fill_color": [
-      0.2,
-      0.3,
-      0.5,
-      1.0
-    ],
-    "key_enabled": "True",
-    "key_size": 14.0,
-    "key_energy": 40.0,
-    "key_color": [
-      0.5,
-      0.1,
-      0.2,
-      1.0
-    ],
-    "rim_energy": 5.0,
-    "rim_color": [
-      0.0,
-      0.4,
-      0.0,
-      1.0
-    ],
-    "ambient_color": [
-      0.0,
-      0.0,
-      0.0,
-      1.0
-    ],
+    "background_transmission": 0.0,
+    "background_subsurface": 0.0,
     "background_color": [
       0.0,
       0.0,
       0.0,
       1.0
+    ],
+    "fill_enabled": "True",
+    "fill_size": 100,
+    "fill_energy": 5.0,
+    "fill_color": [
+      1.0,
+      1.0,
+      1.0,
+      1.0
+    ],
+    "key_enabled": "True",
+    "key_size": 1.0,
+    "key_energy": 50.0,
+    "key_type": "POINT",
+    "key_color": [
+      0.2,
+      0.2,
+      0.8,
+      1.0
+    ],
+    "key_location": [
+      0.4,
+      -0.3,
+      0.6
+    ],
+    "rim_energy": 5.0,
+    "rim_size": 0.001,
+    "rim_color": [
+      1.0,
+      1.0,
+      1.0,
+      1.0
+    ],
+    "ambient_energy": 5.0,
+    "ambient_color": [
+      0.2,
+      0.2,
+      0.2,
+      1.0
     ]
   },
   "render": {
-    "fps": 30,
+    "fps": 60,
     "SOLVED_use_motion_blur": true,
     "use_motion_blur": false,
     "resolution_percentage": 25,
     "resolution_x": 400,
-    "resolution_y": 600
+    "resolution_y": 800
   },
   "banner": {
     "enabled": false
