@@ -61,10 +61,10 @@ def _build_bumpers(cfg: TableConfig, table: Object) -> None:
     h = cfg.bumpers_height
     # Each wall is a thin box positioned at one edge of the table.
     walls = [
-        ("Bumper_N", (0, sy, sz + h / 2), (sx, 0.005, h)),
-        ("Bumper_S", (0, -sy, sz + h / 2), (sx, 0.005, h)),
-        ("Bumper_E", (sx, 0, sz + h / 2), (0.005, sy, h)),
-        ("Bumper_W", (-sx, 0, sz + h / 2), (0.005, sy, h)),
+        ("Bumper_N", (0, sy/2, sz + h / 2), (sx, 0.005, h)),
+        ("Bumper_S", (0, -sy/2, sz + h / 2), (sx, 0.005, h)),
+        ("Bumper_E", (sx/2, 0, sz + h / 2), (0.005, sy, h)),
+        ("Bumper_W", (-sx/2, 0, sz + h / 2), (0.005, sy, h)),
     ]
     for name, loc, scale in walls:
         bpy.ops.mesh.primitive_cube_add(
@@ -200,11 +200,13 @@ def animate_camera_orbit(
             track.keyframe_insert(data_path="influence", frame=end_f)
             # Make the pre-arrive keyframe constant so it snaps rather than fading.
             if cam.animation_data and cam.animation_data.action:
-                for fc in cam.animation_data.action.fcurves:
-                    if "influence" in fc.data_path:
-                        for kp in fc.keyframe_points:
-                            if abs(kp.co.x - (arrive_f - 1)) < 0.5:
-                                kp.interpolation = "CONSTANT"
+                fcurves = getattr(cam.animation_data.action, "fcurves", None)
+                if fcurves:
+                    for fc in fcurves:
+                        if "influence" in fc.data_path:
+                            for kp in fc.keyframe_points:
+                                if abs(kp.co.x - (arrive_f - 1)) < 0.5:
+                                    kp.interpolation = "CONSTANT"
 
         # Compute pointing direction from end camera location to die.
         view_vec = (die_pos - end_cam_loc).normalized()
