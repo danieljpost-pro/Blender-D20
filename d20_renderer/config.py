@@ -101,10 +101,18 @@ class DieConfig:
     body_subsurface: float = 0.12  # subsurface scatter for translucent depth
 
     # Number engraving
-    number_color: RGBA = (0.02, 0.02, 0.02, 1.0)  # matte black ink
+    number_color: RGBA = (0.02, 0.02, 0.02, 1.0)  # matte black ink (for decal/raised)
     number_roughness: float = 0.95  # matte finish; high = non-reflective
+    number_metallic: float = 0.0  # metallic property
     number_style: Literal["decal", "inset", "raised"] = "decal"
     number_inset_depth: float = 0.0006  # only used for inset/raised
+
+    # Inset-specific material properties (carved surface appearance)
+    inset_color: RGBA = (0.05, 0.05, 0.05, 1.0)  # color of carved surface (darker/different)
+    inset_roughness: float = 0.8  # carved surface finish
+    inset_metallic: float = 0.0  # metallic property of carved surface
+    inset_ior: float = 1.45  # refractive index of carved surface
+
     font_path: str | None = None  # path to .ttf/.otf; None = Blender default
     font_scale: float = 0.55  # fraction of face inradius
     font_bold: bool = True

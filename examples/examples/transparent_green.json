@@ -22,17 +22,17 @@
     "body_roughness": 0.25,
     "body_transmission": 0.001,
     "body_subsurface": 0.15,
-    "body_metallic": 0.8,
+    "body_metallic": 0.1,
     "body_ior": 1.5,
     "number_color": [
-      0.0,
-      0.0,
-      0.0,
+      1.0,
+      1.0,
+      1.0,
       1.0
     ],
     "number_style": "inset",
-    "number_inset_depth": 0.004,
-    "bevel_amount": 0.0004,
+    "number_inset_depth": 0.08,
+    "bevel_amount": 0.008,
     "bevel_segments": 1,
     "font_scale": 0.5
   },
@@ -96,11 +96,11 @@
     ]
   },
   "render": {
-    "fps": 24,
+    "fps": 12,
     "use_motion_blur": true,
     "resolution_percentage": 25,
-    "resolution_x": 600,
-    "resolution_y": 800
+    "resolution_x": 200,
+    "resolution_y": 200
   },
   "banner": {
     "enabled": false
