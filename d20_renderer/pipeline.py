@@ -23,8 +23,6 @@ from datetime import datetime
 
 import bpy
 
-from . import banner as banner_mod
-from . import banner_audio as banner_audio_mod
 from . import cache as cache_mod
 from . import die as die_mod
 from . import log
@@ -65,7 +63,16 @@ def run(cfg: PipelineConfig) -> None:
     # ---- Stage 1: Scene build ----
     log.stage("scene", "building")
     _clear_scene()
-    scene_mod.build_table(cfg.table)
+
+    # Bowl and table are mutually exclusive surfaces.
+    if cfg.bowl.enabled:
+        log.debug("bowl enabled: skipping table build")
+        cfg.table.physics_enabled = False
+    else:
+        scene_mod.build_table(cfg.table)
+
+    if cfg.bowl.enabled:
+        scene_mod.build_bowl(cfg.bowl)
     scene_mod.build_lighting(cfg.lighting)
     cam = scene_mod.build_camera(cfg.camera)
 
@@ -73,10 +80,11 @@ def run(cfg: PipelineConfig) -> None:
     log.debug("pipeline.scene: building die (with labels)")
     die_obj = die_mod.build_die(cfg.die, with_labels=True)
 
-    _label_children = [c for c in die_obj.children if c.name.startswith("DieLabel_")]
-    log.debug(f"pipeline.scene: die has {len(_label_children)} label children")
+    if die_obj is not None:
+        _label_children = [c for c in die_obj.children if c.name.startswith("DieLabel_")]
+        log.debug(f"pipeline.scene: die has {len(_label_children)} label children")
 
-    if cfg.camera.dof_enabled and cfg.camera.dof_focus_object:
+    if cfg.camera.dof_enabled and cfg.camera.dof_focus_object and cam is not None:
         focus_obj = bpy.data.objects.get(cfg.camera.dof_focus_object)
         if focus_obj is not None:
             cam.data.dof.focus_object = focus_obj
@@ -93,10 +101,8 @@ def run(cfg: PipelineConfig) -> None:
         log.stage("physics", "DRY-RUN")
     else:
         phys_key = cache_mod.physics_key(cfg)
-        # We persist the physics key inside the cache_dir, NOT next to the
-        # baked point cache (Blender owns that path). If the key file
-        # matches, we trust the existing bake.
         phys_key_file = os.path.join(cfg.cache.cache_dir, "physics.cache_key")
+        bake_blend_path = os.path.join(cfg.cache.cache_dir, "physics.blend")
 
         cached_key = None
         if os.path.exists(phys_key_file):
@@ -106,15 +112,28 @@ def run(cfg: PipelineConfig) -> None:
             except OSError:
                 cached_key = None
 
-        if cfg.cache.enabled and not cfg.cache.force_physics and cached_key == phys_key:
-            log.stage("physics", f"cache HIT (key={phys_key}) — loading baked cache")
-            log.info("Physics cache loaded from disk")
+        if cfg.cache.enabled and not cfg.cache.force_physics and cached_key == phys_key and os.path.exists(bake_blend_path):
+            # Cache hit: load the baked physics (full scene from .blend)
+            log.stage("physics", f"cache HIT (key={phys_key}) — loading baked physics")
+            bpy.ops.wm.open_mainfile(filepath=bake_blend_path)
+            log.info("Physics .blend loaded from disk")
+            # Get references to objects from the loaded scene
+            die_obj = bpy.data.objects.get("Die")
+            cam = bpy.data.objects.get("Camera")
+            if die_obj is None or cam is None:
+                log.error("Cached .blend missing Die or Camera!")
+                raise SystemExit(1)
         else:
-            log.stage("physics", f"cache MISS — baking simulation (key={phys_key})")
+            # Cache miss: bake fresh
+            if cached_key == phys_key and os.path.exists(bake_blend_path):
+                log.stage("physics", f"cache KEY HIT but .blend missing (key={phys_key}) — re-baking")
+            else:
+                log.stage("physics", f"cache MISS — baking simulation (key={phys_key})")
             physics_mod.bake_simulation(cfg.physics)
+            bpy.ops.wm.save_as_mainfile(filepath=bake_blend_path)
             with open(phys_key_file, "w") as fh:
                 fh.write(phys_key)
-            log.info("Physics cache saved to disk")
+            log.info("Physics .blend saved to disk")
 
     # ---- Stage 3: Settle detection ----
     log.info("Detecting settle frame...")
@@ -178,18 +197,10 @@ def run(cfg: PipelineConfig) -> None:
         log.info(f"outcome {idx}/{total_outcomes}: relabeling die for value {outcome}...")
         die_mod.assign_outcome_to_face(die_obj, up_face_index=up_face, desired_value=outcome)
 
-        # Banner (image potentially cached) + audio
-        log.info(f"outcome {idx}/{total_outcomes}: setting up banner...")
-        banner_mod.setup_banner(cfg.banner, cfg.render, outcome, settle_frame)
-        log.info(f"outcome {idx}/{total_outcomes}: setting up audio...")
-        has_audio = banner_audio_mod.setup_banner_audio(
-            cfg.banner_audio, cfg.banner, outcome, settle_frame, cfg.render.fps
-        )
-
         # Configure + render
         log.info(f"outcome {idx}/{total_outcomes}: configuring render...")
-        render_mod.configure_render(cfg.render, out_path, with_audio=has_audio)
-        log.stage(f"render outcome={outcome}", f"rendering -> {out_path} (audio={has_audio})")
+        render_mod.configure_render(cfg.render, out_path)
+        log.stage(f"render outcome={outcome}", f"rendering -> {out_path}")
         log.info(f"outcome {idx}/{total_outcomes}: rendering...")
         render_mod.render_animation()
         log.info(f"outcome {idx}/{total_outcomes}: render complete")

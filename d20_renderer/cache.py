@@ -7,8 +7,7 @@ the stage if the inputs are unchanged.
 
 This is critical for working on limited hardware:
   - Don't re-bake physics when only changing the die color.
-  - Don't re-render outcome 20 when only changing outcome 1's banner text.
-  - Don't regenerate banner PNGs when only changing audio paths.
+  - Don't re-render outcome 20 when only changing outcome 1's die color.
 
 The hash is deliberately *over-conservative* — any field change in any
 involved config invalidates the cache. False negatives (re-running when we
@@ -78,18 +77,14 @@ def physics_key(cfg: PipelineConfig) -> str:
             "collision_shape": cfg.die.collision_shape,
         },
         cfg.table,
+        cfg.bowl,  # bowl geometry is a physics surface when enabled
     )
-
-
-def banner_image_key(cfg: PipelineConfig, outcome: int) -> str:
-    """The banner PNG depends only on text, font, colors, sizing — and outcome."""
-    return _hash(cfg.banner, outcome)
 
 
 def render_key(cfg: PipelineConfig, outcome: int) -> str:
     """
     Render output depends on EVERYTHING — physics, all materials, lighting,
-    camera, banner, audio, render settings, this specific outcome value.
+    camera, lighting, render settings, this specific outcome value.
     Effectively: if anything changed, re-render.
     """
     return _hash(
@@ -97,8 +92,6 @@ def render_key(cfg: PipelineConfig, outcome: int) -> str:
         cfg.die,  # full die config including materials
         cfg.camera,
         cfg.lighting,
-        cfg.banner,
-        cfg.banner_audio,
         cfg.render,
         outcome,
     )

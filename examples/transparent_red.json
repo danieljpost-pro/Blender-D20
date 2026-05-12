@@ -1,5 +1,5 @@
 {
-  "_comment": "Classic translucent purple/blue resin D20 with subtle subsurface scattering. No banner or audio — clean roll only.",
+  "_comment": "Classic translucent purple/blue resin D20 with subtle subsurface scattering.",
   "die": {
     "body_color": [
       0.85,
@@ -93,9 +93,6 @@
     "resolution_percentage": 25,
     "resolution_x": 600,
     "resolution_y": 800
-  },
-  "banner": {
-    "enabled": false
   },
   "desired_outcomes": [
     20

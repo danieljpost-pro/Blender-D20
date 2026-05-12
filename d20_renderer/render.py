@@ -16,14 +16,8 @@ from . import log
 from .config import RenderConfig
 
 
-def configure_render(cfg: RenderConfig, output_path: str, with_audio: bool = False) -> None:
-    """Apply RenderConfig to the current scene.
-
-    Args:
-        cfg: render config.
-        output_path: filepath for the rendered video (or PNG, in single_frame mode).
-        with_audio: if True, configure the FFmpeg muxer to include audio (AAC).
-    """
+def configure_render(cfg: RenderConfig, output_path: str) -> None:
+    """Apply RenderConfig to the current scene."""
     scene = bpy.context.scene
     r = scene.render
 
@@ -31,7 +25,7 @@ def configure_render(cfg: RenderConfig, output_path: str, with_audio: bool = Fal
         f"render.configure: engine={cfg.engine}, device={cfg.device}, samples={cfg.samples}, "
         f"res={cfg.resolution_x}x{cfg.resolution_y}@{cfg.resolution_percentage}%, "
         f"fps={cfg.fps}, format={cfg.output_format}, denoiser={cfg.use_denoiser}, "
-        f"audio={with_audio}, output={output_path}"
+        f"output={output_path}"
     )
 
     # --- Engine ---
@@ -123,11 +117,7 @@ def configure_render(cfg: RenderConfig, output_path: str, with_audio: bool = Fal
             r.ffmpeg.format = "MPEG4"
             r.ffmpeg.codec = cfg.ffmpeg_codec
             r.ffmpeg.constant_rate_factor = cfg.ffmpeg_quality
-            if with_audio:
-                r.ffmpeg.audio_codec = "AAC"
-                r.ffmpeg.audio_bitrate = 192
-            else:
-                r.ffmpeg.audio_codec = "NONE"
+            r.ffmpeg.audio_codec = "NONE"
         except TypeError as e:
             log.info(
                 f"render.format: this Blender build cannot output FFMPEG video ({e}); "

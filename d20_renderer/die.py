@@ -29,7 +29,7 @@ if TYPE_CHECKING:
     from bpy.types import Object
 
 
-def build_die(cfg: DieConfig, with_labels: bool = True) -> Object:
+def build_die(cfg: DieConfig, with_labels: bool = True, apply_modifiers: bool = True) -> Object:
     """
     Build a D20 (icosahedron) with rounded edges and a body material.
     If with_labels=True, also add 20 child text labels (one per face with fixed numbers).
@@ -39,8 +39,13 @@ def build_die(cfg: DieConfig, with_labels: bool = True) -> Object:
     die = _build_icosahedron_mesh(cfg)
     _apply_body_material(die, cfg)
     if with_labels:
-        labels = _build_face_labels(die, cfg)
-        _apply_initial_face_values(labels, cfg.face_values)
+        _build_face_labels(die, cfg)
+        # Apply Boolean modifiers if inset/raised style so they're baked into the mesh
+        if apply_modifiers and cfg.number_style in ("inset", "raised"):
+            bpy.context.view_layer.objects.active = die
+            for mod in die.modifiers:
+                if mod.type == "BOOLEAN":
+                    bpy.ops.object.modifier_apply(modifier=mod.name)
     _apply_bevel(die, cfg)
     _setup_rigid_body(die, cfg)
     return die
@@ -228,7 +233,7 @@ def _build_face_labels(die: Object, cfg: DieConfig) -> list[Object]:
         txt.rotation_mode = "QUATERNION"
         txt.rotation_quaternion = rot_quat
 
-        # Material: emissive ink color, ignores transmission of body
+        # Material: ink color
         mat = bpy.data.materials.new(name=f"DieInk_{face_idx:02d}")
         mat.use_nodes = True
         bsdf = mat.node_tree.nodes["Principled BSDF"]
@@ -236,21 +241,32 @@ def _build_face_labels(die: Object, cfg: DieConfig) -> list[Object]:
         bsdf.inputs["Roughness"].default_value = cfg.number_roughness
         txt.data.materials.append(mat)
 
-        # Convert text to mesh? Keeping as text is fine — Blender renders it
-        # directly. For inset/raised number_style, we'd convert and boolean
-        # against the body. (TODO if you want engraving instead of decals.)
-        if cfg.number_style != "decal":
-            # Placeholder: real implementation would convert to mesh and use
-            # a Boolean modifier on the die. Decal mode (default) is the
-            # easiest and works fine for most purposes.
-            pass
+        # Store reference: will apply face value and convert to mesh later if needed
+        # For now, keep as text object (allows setting body text)
+        labels.append((txt, face_idx, cfg.number_style))
+
+    # Apply initial face values while text objects are still text
+    for label_data, value in zip(labels, cfg.face_values):
+        txt, face_idx, number_style = label_data
+        txt.data.body = str(value)
+
+        # For inset/raised: create Boolean modifier on die using the text object
+        # (Keep as text for now; Blender can use text objects with Boolean)
+        if number_style in ("inset", "raised"):
+            bool_mod = die.modifiers.new(name=f"TextBoolean_{face_idx:02d}", type="BOOLEAN")
+            bool_mod.object = txt
+            bool_mod.operation = "DIFFERENCE" if number_style == "inset" else "UNION"
+            bool_mod.solver = "FLOAT"
+            # Hide the text from render (it's only used for the Boolean)
+            txt.hide_render = True
 
         # Parent to die so it follows the tumble
         txt.parent = die
         # Counter-act the parenting so position is correct in die's local frame
         txt.matrix_parent_inverse = die.matrix_world.inverted()
 
-        labels.append(txt)
+    # Return just the text objects (unwrap from tuples)
+    return [label_data[0] for label_data in labels]
 
     return labels
 

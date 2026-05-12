@@ -33,6 +33,9 @@ def configure_world(cfg: PhysicsConfig) -> None:
     rbw.enabled = True
     rbw.substeps_per_frame = cfg.substeps_per_frame
     rbw.solver_iterations = cfg.solver_iterations
+    # Seed for deterministic simulation across runs (if exposed in this Blender version)
+    if hasattr(rbw, 'seed'):
+        rbw.seed = 1  # Blender's rigid body world uses a fixed seed (Bullet is deterministic regardless)
 
     # Gravity
     scene.gravity = cfg.gravity

@@ -17,10 +17,10 @@ Everything after `--` is passed to this script (Blender convention).
 
 Example sessions:
 
-    # Cheap preview: Eevee, 25% resolution, 8 samples, no banner, no audio.
+    # Cheap preview: Eevee, 25% resolution, 8 samples.
     blender -b --python -m d20_renderer.run -- \
         --engine BLENDER_EEVEE_NEXT --resolution-percent 25 \
-        --samples 8 --no-banner --no-audio --outcomes 20
+        --samples 8 --outcomes 20
 
     # Render one frame to inspect lighting/composition cheaply.
     blender -b --python -m d20_renderer.run -- \
@@ -165,16 +165,28 @@ def _build_parser() -> argparse.ArgumentParser:
     # --- Feature toggles ---
     g_feat = p.add_argument_group("feature toggles")
     g_feat.add_argument(
-        "--no-banner", action="store_true", help="Disable banner overlay regardless of config."
+        "--bowl",
+        action="store_true",
+        help="Enable hemispherical bowl; the die rolls into it instead of onto a flat table.",
     )
     g_feat.add_argument(
-        "--banner-text",
-        type=str,
+        "--bowl-radius",
+        type=float,
         default=None,
-        help="Override banner text template. {value} is substituted.",
+        metavar="R",
+        help="Bowl inner radius in meters (default 0.12).",
     )
     g_feat.add_argument(
-        "--no-audio", action="store_true", help="Disable banner audio regardless of config."
+        "--bowl-depth",
+        type=float,
+        default=None,
+        metavar="D",
+        help="Bowl depth in meters, rim to bottom (default 0.06).",
+    )
+    g_feat.add_argument(
+        "--no-table",
+        action="store_true",
+        help="Hide the table surface in the render (physics still active).",
     )
     g_feat.add_argument(
         "--no-bumpers",
@@ -384,12 +396,14 @@ def _apply_cli_overrides(cfg: PipelineConfig, args: argparse.Namespace) -> None:
         cfg.render.ffmpeg_quality = args.ffmpeg_quality
 
     # Feature toggles
-    if args.no_banner:
-        cfg.banner.enabled = False
-    if args.banner_text is not None:
-        cfg.banner.text_template = args.banner_text
-    if args.no_audio:
-        cfg.banner_audio.enabled = False
+    if args.bowl:
+        cfg.bowl.enabled = True
+    if args.bowl_radius is not None:
+        cfg.bowl.radius = args.bowl_radius
+    if args.bowl_depth is not None:
+        cfg.bowl.depth = args.bowl_depth
+    if args.no_table:
+        cfg.table.visible = False
     if args.no_bumpers:
         cfg.table.bumpers_enabled = False
     if args.no_dof:

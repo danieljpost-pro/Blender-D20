@@ -6,8 +6,8 @@ Use any of these as a starting point with `make render CONFIG=examples/<name>.js
 |------|---------|
 | `minimal.json` | Bare minimum — just sets the desired outcome. Useful as a template. |
 | `preview.json` | Fast Eevee preview at 540p. Use when iterating on physics or lighting. Not final-quality. |
-| `crit_hit.json` | Dramatic dark-resin die with banner + audio. Demonstrates per-outcome sound mapping. |
-| `transparent_resin.json` | Classic translucent purple resin look. No banner. |
+| `crit_hit.json` | Dramatic dark-resin die. |
+| `transparent_resin.json` | Classic translucent purple resin look. |
 
 ## Notes
 

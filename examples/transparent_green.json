@@ -1,5 +1,16 @@
 {
-  "_comment": "Classic translucent green resin D20 with very subtle subsurface scattering. No banner or audio — clean roll only.",
+  "_comment": "Translucent green resin D20 rolling into a dark bowl.",
+  "table": {
+    "visible": false
+  },
+  "bowl": {
+    "visible": false,
+    "enabled": true,
+    "radius": 0.4,
+    "depth": 0.4,
+    "friction": 0.5,
+    "restitution": 0.4
+  },
   "camera": {
     "focal_length_mm": 35.0,
     "location": [
@@ -10,18 +21,20 @@
     "orbit_start_offset_frames": -74,
     "track_die": "True",
     "orbit_hold_frames": 70,
+    "orbital_tilt_deg": 1.0,
+    "orbital_end_distance": 0.12,
     "SOLVED_orbit_hold_frames": 120
   },
   "physics": {
     "initial_linear_velocity": [
-      2.0,
-      4.3,
-      1.1
+      0.1,
+      2.8,
+      0.0
     ],
     "initial_angular_velocity": [
       0.0,
-      0.0,
-      69.0
+      40.0,
+      40.0
     ],
     "settle_velocity_threshold": 0.02
   },
@@ -33,6 +46,8 @@
       0.002,
       1.0
     ],
+    "linear_damping": 0.08,
+    "angular_damping": 0.15,
     "body_roughness": 0.0,
     "body_transmission": 0.02,
     "body_subsurface": 0.15,
@@ -44,47 +59,10 @@
       0.0,
       1.0
     ],
-    "number_style": "inset",
-    "number_inset_depth": 0.01,
-    "bevel_amount": 0.0,
-    "bevel_segments": 0,
     "font_scale": 0.5
   },
-  "table": {
-    "size": [
-      0.8,
-      0.8,
-      0.000001
-    ],
-    "rotation_euler": [
-      0.0,
-      0.0,
-      0.0
-    ],
-    "color": [
-      0.0,
-      0.0,
-      0.0,
-      0.0
-    ],
-    "roughness": 1000.0,
-    "friction": 0.75,
-    "restitution": 0.3,
-    "normal_map_path": null,
-    "bumpers_enabled": true,
-    "bumpers_height": 0.1,
-    "bumpers_visible": "True",
-    "bumpers_restitution": 0.4,
-    "bumpers_friction": 0.2,
-    "bumpers_roughness": 0.0
-  },
   "lighting": {
-    "background_roughness": 0.0,
-    "background_metallic": 0.0,
     "background_strength": 0.0,
-    "background_ior": 1.5,
-    "background_transmission": 0.0,
-    "background_subsurface": 0.0,
     "background_color": [
       0.0,
       0.0,
@@ -105,9 +83,9 @@
     "key_energy": 50.0,
     "key_type": "POINT",
     "key_color": [
-      0.2,
-      0.2,
-      0.8,
+      0.35,
+      0.9,
+      0.35,
       1.0
     ],
     "key_location": [
@@ -122,24 +100,14 @@
       1.0,
       1.0,
       1.0
-    ],
-    "ambient_energy": 5.0,
-    "ambient_color": [
-      0.2,
-      0.2,
-      0.2,
-      1.0
     ]
   },
   "render": {
-    "fps": 60,
+    "fps": 30,
     "SOLVED_use_motion_blur": true,
     "use_motion_blur": false,
-    "resolution_percentage": 25,
-    "resolution_x": 400,
-    "resolution_y": 800
-  },
-  "banner": {
-    "enabled": false
+    "resolution_percentage": 50,
+    "resolution_x": 800,
+    "resolution_y": 1200
   }
 }

@@ -12,7 +12,7 @@ from typing import TYPE_CHECKING
 
 import bpy
 
-from .config import CameraConfig, LightingConfig, TableConfig
+from .config import BowlConfig, CameraConfig, LightingConfig, TableConfig
 
 if TYPE_CHECKING:
     from bpy.types import Object
@@ -25,7 +25,9 @@ if TYPE_CHECKING:
 
 def build_table(cfg: TableConfig) -> Object:
     """Create the table surface as a passive rigid body."""
-    bpy.ops.mesh.primitive_cube_add(size=1.0, location=cfg.location)
+    bpy.ops.mesh.primitive_cylinder_add(
+        vertices=8, radius=0.5, depth=1.0, location=cfg.location
+    )
     table = bpy.context.active_object
     table.name = "Table"
     table.scale = (cfg.size[0], cfg.size[1], cfg.size[2])
@@ -42,15 +44,17 @@ def build_table(cfg: TableConfig) -> Object:
     # texture nodes here. Left as TODO for brevity.
     table.data.materials.append(mat)
 
-    # Rigid body (passive — does not move)
-    bpy.ops.rigidbody.object_add()
-    table.rigid_body.type = "PASSIVE"
-    table.rigid_body.collision_shape = "BOX"
-    table.rigid_body.friction = cfg.friction
-    table.rigid_body.restitution = cfg.restitution
+    table.hide_render = not cfg.visible
 
-    if cfg.bumpers_enabled:
-        _build_bumpers(cfg, table)
+    if cfg.physics_enabled:
+        bpy.ops.rigidbody.object_add()
+        table.rigid_body.type = "PASSIVE"
+        table.rigid_body.collision_shape = "CONVEX_HULL"
+        table.rigid_body.friction = cfg.friction
+        table.rigid_body.restitution = cfg.restitution
+
+        if cfg.bumpers_enabled:
+            _build_bumpers(cfg, table)
 
     return table
 
@@ -87,6 +91,61 @@ def _build_bumpers(cfg: TableConfig, table: Object) -> None:
         wall.rigid_body.restitution = cfg.bumpers_restitution
 
         wall.hide_render = not cfg.bumpers_visible
+
+
+# ----------------------------------------------------------------------------
+# Bowl
+# ----------------------------------------------------------------------------
+
+
+def build_bowl(cfg: BowlConfig) -> "Object":
+    """Create a hemispherical bowl as a passive rigid body.
+
+    Concave geometry requires collision_shape=MESH (not CONVEX_HULL, which
+    would hull-wrap to a flat disc and let the die pass straight through).
+    The rim is positioned at cfg.location; the bowl opens upward.
+    """
+    import bmesh as _bmesh
+
+    bpy.ops.mesh.primitive_uv_sphere_add(
+        segments=cfg.segments,
+        ring_count=cfg.segments // 2,
+        radius=1.0,
+        location=cfg.location,
+    )
+    obj = bpy.context.active_object
+    obj.name = "Bowl"
+
+    # Keep only the lower hemisphere: delete verts at z > 0 (local space).
+    bm = _bmesh.new()
+    bm.from_mesh(obj.data)
+    upper = [v for v in bm.verts if v.co.z > 1e-4]
+    _bmesh.ops.delete(bm, geom=upper, context="VERTS")
+    bm.to_mesh(obj.data)
+    bm.free()
+    obj.data.update()
+
+    # Scale unit hemisphere to (radius, radius, depth).
+    # After delete: rim at z=0, bottom at z=-1 → scaled to z=-depth.
+    obj.scale = (cfg.radius, cfg.radius, cfg.depth)
+    bpy.ops.object.transform_apply(scale=True)
+
+    mat = bpy.data.materials.new(name="BowlMaterial")
+    mat.use_nodes = True
+    bsdf = mat.node_tree.nodes["Principled BSDF"]
+    bsdf.inputs["Base Color"].default_value = cfg.color
+    bsdf.inputs["Roughness"].default_value = cfg.roughness
+    obj.data.materials.append(mat)
+
+    bpy.ops.rigidbody.object_add()
+    obj.rigid_body.type = "PASSIVE"
+    obj.rigid_body.collision_shape = "MESH"  # required for concave geometry
+    obj.rigid_body.friction = cfg.friction
+    obj.rigid_body.restitution = cfg.restitution
+
+    obj.hide_render = not cfg.visible
+
+    return obj
 
 
 # ----------------------------------------------------------------------------

@@ -2,7 +2,7 @@
 Configuration dataclasses for the D20 renderer.
 
 All tunable parameters live here. The top-level `RenderConfig` aggregates
-sub-configs by concern (table, die, physics, camera, lighting, banner, render).
+sub-configs by concern (table, die, physics, camera, lighting, render).
 Anything you might want to vary between runs should be a field here, not
 hard-coded elsewhere in the codebase.
 
@@ -45,12 +45,36 @@ class TableConfig:
     texture_path: str | None = None  # optional image texture (felt, wood, etc.)
     normal_map_path: str | None = None  # optional normal map for surface detail
 
+    visible: bool = True         # set False to hide table in render
+    physics_enabled: bool = True # set False to remove table rigid body entirely
+
     # Bumpers: invisible walls to keep the die in frame.
     bumpers_enabled: bool = True
     bumpers_height: float = 0.10  # meters above the table top
     bumpers_visible: bool = False  # render them or just collide with them
     bumpers_restitution: float = 0.4
     bumpers_friction: float = 0.5
+
+
+@dataclass
+class BowlConfig:
+    """Hemispherical bowl the die rolls into — an alternative to the flat table.
+
+    The bowl is a passive rigid body with MESH collision (required for concave
+    geometry). Its rim sits at `location`; the bowl extends downward by `depth`.
+    Pair with `table.visible=False` (or `--no-table`) when using this.
+    """
+
+    enabled: bool = False
+    radius: float = 0.12       # inner radius in meters
+    depth: float = 0.06        # bowl depth in meters (rim to bottom)
+    segments: int = 32         # mesh density; higher = smoother but more polys
+    location: Vec3 = (0.0, 0.0, 0.0)  # world position of the rim centre
+    color: RGBA = (0.15, 0.08, 0.05, 1.0)  # dark wood
+    roughness: float = 0.7
+    friction: float = 0.4
+    restitution: float = 0.25
+    visible: bool = True
 
 
 # ----------------------------------------------------------------------------
@@ -119,8 +143,8 @@ class PhysicsConfig:
     # not reversing here, a mid-air start just looks more natural anyway).
     initial_position: Vec3 = (0.0, 0.0, 0.15)  # centered above table
     initial_rotation_euler: Vec3 = (0.5, 1.2, 0.3)
-    initial_linear_velocity: Vec3 = (2.2, -1.0, 0.35)  # m/s (increased for more dramatic throw)
-    initial_angular_velocity: Vec3 = (20.0, 15.0, 25.0)  # rad/s (increased for more tumbling)
+    initial_linear_velocity: Vec3 = (0.8, -0.4, 0.2)   # m/s
+    initial_angular_velocity: Vec3 = (10.0, 8.0, 12.0)  # rad/s
 
     # Simulation bounds
     max_simulation_frames: int = 360  # ~15s at 24fps for better balance of motion + settle
@@ -138,8 +162,8 @@ class PhysicsConfig:
 
 @dataclass
 class CameraConfig:
-    location: Vec3 = (0.0, -0.32, 0.12)
-    look_at: Vec3 = (0.0, 0.05, 0.07)  # aim at die action area
+    location: Vec3 = (0.0, 0.0, 0.5)   # directly above table center
+    look_at: Vec3 = (0.0, 0.0, 0.0)    # table center
     focal_length_mm: float = 35.0  # wider lens for better framing
     sensor_width_mm: float = 36.0
     dof_enabled: bool = True
@@ -196,109 +220,6 @@ class LightingConfig:
 
 
 # ----------------------------------------------------------------------------
-# Banner audio (optional sound effect + ambience layered with the banner)
-# ----------------------------------------------------------------------------
-
-
-@dataclass
-class BannerAudioConfig:
-    """
-    Optional audio that plays alongside the banner. Configured independently
-    of the visual banner — you can have:
-      - banner + audio
-      - banner + no audio
-      - audio + no banner (e.g. a sting on every roll regardless of overlay)
-      - neither
-
-    Two layers, both optional and independent:
-      1. `sting`: a one-shot SFX (fanfare, "ding", crit hit sound) that fires
-         at the banner trigger frame.
-      2. `ambience`: a background loop (crowd cheer, tavern murmur, drone)
-         that plays for the duration the banner is on-screen.
-
-    Each layer can be a single file, OR a per-outcome map (e.g. play
-    "crit_hit.wav" for outcome=20, "miss.wav" for outcome=1, fall back to
-    `default_path` for everything else).
-    """
-
-    enabled: bool = False
-
-    # --- Sting (one-shot SFX) ---
-    sting_enabled: bool = True
-    sting_default_path: str | None = None
-    sting_per_outcome: dict = field(
-        default_factory=dict
-    )  # {20: "/path/crit.wav", 1: "/path/fail.wav"}
-    sting_volume: float = 1.0
-    sting_offset_frames: int = 0  # +/- frames relative to banner trigger
-
-    # --- Ambience (background loop) ---
-    ambience_enabled: bool = False
-    ambience_default_path: str | None = None
-    ambience_per_outcome: dict = field(default_factory=dict)
-    ambience_volume: float = 0.4
-    ambience_loop: bool = True
-    ambience_fade_in_frames: int = 8
-    ambience_fade_out_frames: int = 12
-    # Timing: when does ambience start/stop relative to the banner?
-    # By default, follows the banner's visible window.
-    ambience_follow_banner: bool = True
-    ambience_start_frame_absolute: int | None = None  # only if follow_banner=False
-    ambience_end_frame_absolute: int | None = None
-
-
-# ----------------------------------------------------------------------------
-# Banner overlay ("You rolled a 20!")
-# ----------------------------------------------------------------------------
-
-
-@dataclass
-class BannerConfig:
-    """
-    A 2D overlay rendered via the compositor on top of the 3D scene.
-    Configured entirely separately from everything else — turn off by setting
-    `enabled = False`.
-    """
-
-    enabled: bool = True
-
-    # Content. `{value}` is substituted with the actual roll outcome.
-    text_template: str = "You rolled a {value}!"
-    font_path: str | None = None
-    font_size_px: int = 96
-    text_color: RGBA = (1.0, 1.0, 1.0, 1.0)
-    outline_color: RGBA = (0.0, 0.0, 0.0, 1.0)
-    outline_width_px: int = 4
-    bold: bool = True
-
-    # Background behind the text
-    background_enabled: bool = True
-    background_color: RGBA = (0.0, 0.0, 0.0, 0.6)  # semi-transparent black
-    background_padding_px: int = 30
-    background_border_radius_px: int = 16
-
-    # Position (normalized: 0,0 = bottom-left, 1,1 = top-right)
-    anchor: Literal["top", "center", "bottom"] = "bottom"
-    horizontal_align: Literal["left", "center", "right"] = "center"
-    margin_px: int = 80  # distance from anchor edge
-
-    # Animation
-    scroll_direction: Literal["left", "right", "up", "down", "none"] = "left"
-    scroll_duration_frames: int = 24  # frames to scroll fully into place
-    fade_in: bool = True
-    fade_duration_frames: int = 12
-    hold_frames: int = 60  # how long it stays after arriving
-    fade_out: bool = True
-
-    # Timing — when does the banner start, relative to the simulation?
-    # "after_settle" = trigger the moment the die has come to rest.
-    # "absolute" = trigger at `trigger_frame` regardless.
-    trigger_mode: Literal["after_settle", "absolute"] = "after_settle"
-    trigger_frame_offset: int = 6  # frames after settle to start
-    trigger_frame_absolute: int = 120  # only used if trigger_mode == "absolute"
-
-
-# ----------------------------------------------------------------------------
 # Render settings
 # ----------------------------------------------------------------------------
 
@@ -329,7 +250,7 @@ class RenderConfig:
 
     # --- Frame range overrides ---
     # If set, only render this slice [start, end] instead of the full simulation
-    # range. Useful for previewing the settle+banner segment without re-rendering
+    # range. Useful for previewing the settle segment without re-rendering
     # the bouncing portion.
     frame_start_override: int | None = None
     frame_end_override: int | None = None
@@ -366,7 +287,6 @@ class CacheConfig:
 
     # Force flags — re-do the stage even if the cache key matches.
     force_physics: bool = False  # rebuild + rebake physics
-    force_banner_image: bool = False  # regenerate banner PNG
     force_render: bool = False  # re-render even if output exists
 
 
@@ -384,8 +304,7 @@ class LoggingConfig:
 class StageConfig:
     """
     Master switches for entire pipeline stages. These are above and beyond
-    the individual feature flags (banner.enabled, banner_audio.enabled, etc.)
-    — use these to skip whole phases of the pipeline.
+    individual feature flags — use these to skip whole phases of the pipeline.
     """
 
     do_simulate: bool = True  # run + bake physics (False = use existing cache)
@@ -399,12 +318,11 @@ class PipelineConfig:
     """Top-level config — pass one of these to the pipeline."""
 
     table: TableConfig = field(default_factory=TableConfig)
+    bowl: BowlConfig = field(default_factory=BowlConfig)
     die: DieConfig = field(default_factory=DieConfig)
     physics: PhysicsConfig = field(default_factory=PhysicsConfig)
     camera: CameraConfig = field(default_factory=CameraConfig)
     lighting: LightingConfig = field(default_factory=LightingConfig)
-    banner: BannerConfig = field(default_factory=BannerConfig)
-    banner_audio: BannerAudioConfig = field(default_factory=BannerAudioConfig)
     render: RenderConfig = field(default_factory=RenderConfig)
     cache: CacheConfig = field(default_factory=CacheConfig)
     logging: LoggingConfig = field(default_factory=LoggingConfig)

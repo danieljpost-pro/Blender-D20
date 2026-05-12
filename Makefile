@@ -29,7 +29,7 @@ help:
 	@echo "═══════════════════════════════════════════════════════════════"
 	@echo ""
 	@echo "QUICK ITERATION (cheap):"
-	@echo "  make preview              Eevee, 25%, 8 samples, no banner/audio"
+	@echo "  make preview              Eevee, 25%, 8 samples"
 	@echo "  make preview-frame N=60   Render only frame N as PNG"
 	@echo "  make dry-run              Build scene, log plan, no bake/render"
 	@echo "  make smoke                Verify package imports inside Blender"
@@ -57,7 +57,6 @@ help:
 	@echo "  make lint                 ruff check"
 	@echo "  make format               ruff format + auto-fix"
 	@echo "  make install-deps         Install ruff into system Python"
-	@echo "  make install-blender-deps Install Pillow into Blender's Python"
 	@echo ""
 	@echo "VARIABLES:"
 	@echo "  BLENDER     ($(BLENDER))"
@@ -78,7 +77,7 @@ help:
 preview:
 	$(BLEND) $(CONFIG_FLAG) \
 		--engine BLENDER_EEVEE_NEXT --resolution-percent 25 --samples 8 \
-		--no-banner --no-audio --no-motion-blur --no-dof \
+		--no-motion-blur --no-dof \
 		--outcomes $(OUTCOMES) --output-dir $(PREVIEW_DIR) \
 		$(EXTRA_FLAGS)
 
@@ -172,7 +171,6 @@ clean-renders:
 .PHONY: clean
 clean: clean-cache clean-renders
 	find . -type d -name __pycache__ -exec rm -rf {} + 2>/dev/null || true
-	rm -f /tmp/banner_*.png
 
 # ─── Inspection ──────────────────────────────────────────────────────────────
 
@@ -200,7 +198,3 @@ format:
 install-deps:
 	$(PYTHON) -m pip install -r requirements-dev.txt
 
-.PHONY: install-blender-deps
-install-blender-deps:
-	@echo "Ensuring Pillow is importable from Blender's Python..."
-	$(BLENDER) --background --python-use-system-env --python scripts/install_blender_deps.py
