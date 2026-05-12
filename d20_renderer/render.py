@@ -112,7 +112,8 @@ def configure_render(cfg: RenderConfig, output_path: str) -> None:
         # Detect that and degrade to a PNG sequence so the render still produces
         # usable artifacts; user can assemble the sequence with a system ffmpeg.
         try:
-            r.image_settings.media_type = "VIDEO"
+            if bpy.app.version[0] >= 5:
+                r.image_settings.media_type = "VIDEO"
             r.image_settings.file_format = "FFMPEG"  # raises if not in dynamic enum
             r.ffmpeg.format = "MPEG4"
             r.ffmpeg.codec = cfg.ffmpeg_codec
