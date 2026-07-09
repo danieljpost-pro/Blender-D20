@@ -8,6 +8,7 @@ on a freshly cleared scene (see `clear_scene` in `pipeline.py`).
 
 from __future__ import annotations
 
+import math
 from typing import TYPE_CHECKING
 
 import bpy
@@ -60,29 +61,35 @@ def build_table(cfg: TableConfig) -> Object:
 
 
 def _build_bumpers(cfg: TableConfig, table: Object) -> None:
-    """Four invisible (or visible) walls around the table edge."""
+    """Octagonal ring of walls (invisible by default) hugging the table edge.
+
+    The table is an 8-vertex cylinder, so eight walls — one per facet —
+    contain the die on every side. Wall mid-planes sit at the octagon's
+    apothem, so the ring never lies outside the table polygon regardless of
+    the cylinder's vertex phase, and wall bottoms sink to the table's
+    mid-plane so there is no gap for the die to slip under.
+    """
     sx, sy, sz = cfg.size
     h = cfg.bumpers_height
-    # Each wall is a thin box positioned at one edge of the table.
-    walls = [
-        ("Bumper_N", (0, sy/2, sz + h / 2), (sx, 0.005, h)),
-        ("Bumper_S", (0, -sy/2, sz + h / 2), (sx, 0.005, h)),
-        ("Bumper_E", (sx/2, 0, sz + h / 2), (0.005, sy, h)),
-        ("Bumper_W", (-sx/2, 0, sz + h / 2), (0.005, sy, h)),
-    ]
-    for name, loc, scale in walls:
-        bpy.ops.mesh.primitive_cube_add(
-            size=1.0,
-            location=(
-                cfg.location[0] + loc[0],
-                cfg.location[1] + loc[1],
-                cfg.location[2] + loc[2],
-            ),
-        )
+    t = cfg.bumpers_thickness
+    n = 8
+    apothem = math.cos(math.pi / n)  # per unit circumradius
+    facet = 2.0 * math.tan(math.pi / n)  # facet length per unit circumradius
+    for i in range(n):
+        ang = (i + 0.5) * (2.0 * math.pi / n)
+        cx = cfg.location[0] + 0.5 * sx * apothem * math.cos(ang)
+        cy = cfg.location[1] + 0.5 * sy * apothem * math.sin(ang)
+        cz = cfg.location[2] + h / 2.0
+        # Overlap neighbouring walls at the corners so there are no gaps.
+        length = facet * 0.5 * max(sx, sy) + 2.0 * t
+        bpy.ops.mesh.primitive_cube_add(size=1.0, location=(cx, cy, cz))
         wall = bpy.context.active_object
-        wall.name = name
-        wall.scale = scale
+        wall.name = f"Bumper_{i}"
+        wall.scale = (t, length, h)
+        # Scale is applied to the mesh; rotation stays on the object so the
+        # BOX collision shape follows the wall's local axes.
         bpy.ops.object.transform_apply(location=False, rotation=False, scale=True)
+        wall.rotation_euler = (0.0, 0.0, ang)
 
         bpy.ops.rigidbody.object_add()
         wall.rigid_body.type = "PASSIVE"
@@ -179,6 +186,81 @@ def build_camera(cfg: CameraConfig) -> Object:
     return cam
 
 
+def _aim_rotation(loc, aim_at, roll_deg, prev_euler=None):
+    """Euler rotation for a camera at `loc` aiming at `aim_at`, with a
+    clockwise roll around the view axis. Same world-up convention as the
+    TRACK_TO constraint (local +Y toward world +Z), so a roll of 0 reproduces
+    the constraint's pose. `prev_euler` keeps successive keys flip-free.
+    """
+    import mathutils
+
+    view_vec = (aim_at - loc).normalized()
+    world_up = mathutils.Vector((0.0, 0.0, 1.0))
+    right = view_vec.cross(world_up)
+    if right.length < 1e-4:
+        right = mathutils.Vector((1.0, 0.0, 0.0))
+    right = right.normalized()
+    cam_up = right.cross(view_vec).normalized()
+    roll_rot = mathutils.Matrix.Rotation(math.radians(roll_deg), 3, view_vec)
+    right_r = roll_rot @ right
+    up_r = roll_rot @ cam_up
+    neg_view = -view_vec
+    rot = mathutils.Matrix(
+        (
+            (right_r.x, up_r.x, neg_view.x),
+            (right_r.y, up_r.y, neg_view.y),
+            (right_r.z, up_r.z, neg_view.z),
+        )
+    )
+    if prev_euler is not None:
+        return rot.to_euler("XYZ", prev_euler)
+    return rot.to_euler("XYZ")
+
+
+def animate_camera_track(die: Object, settle_frame: int, cfg: CameraConfig) -> None:
+    """Aim the camera at the die along its baked trajectory.
+
+    With no roll configured, this keyframes the CameraTarget empty and lets
+    the TRACK_TO constraint do the aiming. With `orbit_end_roll_deg` set, the
+    constraint can't express the roll, so it is disabled and the camera's
+    rotation is keyed directly — the roll is constant across the whole shot
+    (invisible against the void background), which is what makes the settled
+    face read right-side-up without any on-screen rotation later.
+
+    Sampling every 3rd frame lets bezier interpolation smooth out bounce
+    jitter. Stops at the settle frame; `animate_camera_orbit` continues from
+    there, and the die's settle position makes the handoff continuous.
+    """
+    target = bpy.data.objects.get("CameraTarget")
+    cam = bpy.context.scene.camera
+    if target is None or cam is None:
+        from . import log
+
+        log.info("camera.track: no CameraTarget/camera found; skipping")
+        return
+
+    roll = cfg.orbit_end_roll_deg
+    if roll != 0.0:
+        track = next((c for c in cam.constraints if c.type == "TRACK_TO"), None)
+        if track:
+            track.influence = 0.0
+
+    scene = bpy.context.scene
+    frames = list(range(scene.frame_start, settle_frame + 1, 3))
+    if frames[-1] != settle_frame:
+        frames.append(settle_frame)
+    prev_euler = None
+    for f in frames:
+        scene.frame_set(f)
+        die_pos = die.matrix_world.translation.copy()
+        target.location = die_pos
+        target.keyframe_insert(data_path="location", frame=f)
+        if roll != 0.0:
+            prev_euler = _aim_rotation(cam.location, die_pos, roll, prev_euler)
+            cam.rotation_euler = prev_euler
+            cam.keyframe_insert(data_path="rotation_euler", frame=f)
+
+
 def animate_camera_orbit(
     cam: Object,
     die: Object,
@@ -245,56 +327,33 @@ def animate_camera_orbit(
     cam.keyframe_insert(data_path="location", frame=end_f)
     target.keyframe_insert(data_path="location", frame=end_f)
 
-    # Roll: rotate the camera around its viewing axis at the orbit end pose.
-    # TRACK_TO handles pointing during the glide; at arrive_f we fade it out
-    # and take over with a manually computed rotation that includes the roll.
+    # Roll: the roll is constant across the whole shot (applied per-frame by
+    # `animate_camera_track` before the orbit begins), so here we only keep
+    # aiming at the settled die with the same roll while the camera glides.
+    # The aim point never moves during the glide — only the camera does.
     if cfg.orbit_end_roll_deg != 0.0:
         track = next((c for c in cam.constraints if c.type == "TRACK_TO"), None)
         if track:
-            # Hold at full influence through the glide, snap off at arrive_f.
-            track.influence = 1.0
-            track.keyframe_insert(data_path="influence", frame=arrive_f - 1)
             track.influence = 0.0
-            track.keyframe_insert(data_path="influence", frame=arrive_f)
-            track.keyframe_insert(data_path="influence", frame=end_f)
-            # Make the pre-arrive keyframe constant so it snaps rather than fading.
-            if cam.animation_data and cam.animation_data.action:
-                fcurves = getattr(cam.animation_data.action, "fcurves", None)
-                if fcurves:
-                    for fc in fcurves:
-                        if "influence" in fc.data_path:
-                            for kp in fc.keyframe_points:
-                                if abs(kp.co.x - (arrive_f - 1)) < 0.5:
-                                    kp.interpolation = "CONSTANT"
-
-        # Compute pointing direction from end camera location to die.
-        view_vec = (die_pos - end_cam_loc).normalized()
-        world_up = mathutils.Vector((0.0, 0.0, 1.0))
-        right = view_vec.cross(world_up)
-        if right.length < 1e-4:
-            right = mathutils.Vector((1.0, 0.0, 0.0))
-        right = right.normalized()
-        cam_up = right.cross(view_vec).normalized()
-
-        # Apply clockwise roll (positive = CW when looking toward die).
-        roll_rot = mathutils.Matrix.Rotation(math.radians(cfg.orbit_end_roll_deg), 3, view_vec)
-        right_r = roll_rot @ right
-        up_r = roll_rot @ cam_up
-        neg_view = -view_vec
-
-        # Build rotation matrix: columns are (right, up, -view) in world space.
-        rot = mathutils.Matrix(
-            (
-                (right_r.x, up_r.x, neg_view.x),
-                (right_r.y, up_r.y, neg_view.y),
-                (right_r.z, up_r.z, neg_view.z),
+        scene = bpy.context.scene
+        scene.frame_set(start_f)
+        prev_euler = cam.rotation_euler.copy()
+        key_frames = list(range(start_f, arrive_f + 1, 2))
+        if key_frames[-1] != arrive_f:
+            key_frames.append(arrive_f)
+        for f in key_frames:
+            scene.frame_set(f)
+            prev_euler = _aim_rotation(
+                cam.location.copy(), die_pos, cfg.orbit_end_roll_deg, prev_euler
             )
-        )
-        cam.rotation_euler = rot.to_euler()
-        cam.keyframe_insert(data_path="rotation_euler", frame=arrive_f)
+            cam.rotation_euler = prev_euler
+            cam.keyframe_insert(data_path="rotation_euler", frame=f)
+        # Hold the final pose through the hold segment.
         cam.keyframe_insert(data_path="rotation_euler", frame=end_f)
-        log.debug(f"camera.orbit: roll={cfg.orbit_end_roll_deg}° applied at frame {arrive_f}")
-
+        log.debug(
+            f"camera.orbit: constant roll={cfg.orbit_end_roll_deg}° held over frames "
+            f"{start_f}..{end_f}"
+        )
     log.debug(
         f"camera.orbit: start_f={start_f} arrive_f={arrive_f} end_f={end_f}; "
         f"end_loc={tuple(round(x, 4) for x in end_cam_loc)} "
@@ -340,6 +399,17 @@ def build_lighting(cfg: LightingConfig) -> None:
             cfg.rim_color,
             cfg.rim_energy,
             size=0.3,
+        )
+
+    if cfg.top_enabled:
+        _add_light(
+            "TopLight",
+            "AREA",
+            cfg.top_location,
+            cfg.top_rotation_euler,
+            cfg.top_color,
+            cfg.top_energy,
+            size=cfg.top_size,
         )
 
     _setup_world(cfg)

@@ -75,6 +75,9 @@ def physics_key(cfg: PipelineConfig) -> str:
             "angular_damping": cfg.die.angular_damping,
             "collision_margin": cfg.die.collision_margin,
             "collision_shape": cfg.die.collision_shape,
+            "use_deactivation": cfg.die.use_deactivation,
+            "deactivation_linear_velocity": cfg.die.deactivation_linear_velocity,
+            "deactivation_angular_velocity": cfg.die.deactivation_angular_velocity,
         },
         cfg.table,
         cfg.bowl,  # bowl geometry is a physics surface when enabled

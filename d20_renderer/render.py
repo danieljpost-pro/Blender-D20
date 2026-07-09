@@ -83,6 +83,25 @@ def configure_render(cfg: RenderConfig, output_path: str) -> None:
             scene.cycles.motion_blur_position = "CENTER"
         r.motion_blur_shutter = cfg.motion_blur_shutter
 
+    # --- Slow motion (render-time time remap; physics bake unaffected) ---
+    # Stash the unscaled range on the scene so repeat calls (one per outcome)
+    # don't compound the scaling.
+    if "d20_unscaled_frame_end" not in scene:
+        scene["d20_unscaled_frame_end"] = scene.frame_end
+    if cfg.slow_motion_factor != 1.0:
+        factor = cfg.slow_motion_factor
+        r.frame_map_old = 100
+        r.frame_map_new = int(100 * factor)
+        scene.frame_end = int(scene["d20_unscaled_frame_end"] * factor)
+        log.debug(
+            f"slow_motion: factor={factor}, frame_end "
+            f"{scene['d20_unscaled_frame_end']} -> {scene.frame_end}"
+        )
+    else:
+        r.frame_map_old = 100
+        r.frame_map_new = 100
+        scene.frame_end = scene["d20_unscaled_frame_end"]
+
     # --- Frame range override ---
     # Single-frame mode trumps everything else
     if cfg.single_frame is not None:

@@ -123,6 +123,9 @@ def run(cfg: PipelineConfig) -> None:
             if die_obj is None or cam is None:
                 log.error("Cached .blend missing Die or Camera!")
                 raise SystemExit(1)
+            # The loaded .blend carries materials/lights/camera from bake
+            # time; re-apply render-only config that may have changed since.
+            cam = _resync_render_only_config(cfg, die_obj)
         else:
             # Cache miss: bake fresh
             if cached_key == phys_key and os.path.exists(bake_blend_path):
@@ -150,6 +153,11 @@ def run(cfg: PipelineConfig) -> None:
         f"Die settled at frame {settle_frame}, up-facing face index = {up_face} "
         f"(currently shows '{up_label_text}')"
     )
+
+    # ---- Stage 3.5: Camera die-tracking ----
+    if cfg.camera.track_die:
+        log.info("camera.track: aiming camera at die along baked trajectory")
+        scene_mod.animate_camera_track(die_obj, settle_frame, cfg.camera)
 
     # ---- Stage 3.5: Post-settle camera orbit ----
     # Smoothly move the camera to a top-down close-up of the up face. Also
@@ -210,6 +218,51 @@ def run(cfg: PipelineConfig) -> None:
             cache_mod.write_cache_key(out_path, rkey)
 
     log.info("Pipeline complete. All outcomes rendered.")
+
+
+def _resync_render_only_config(cfg: PipelineConfig, die_obj) -> "bpy.types.Object":
+    """Re-apply render-only config on top of a scene loaded from the physics
+    cache .blend.
+
+    Physics-relevant fields are guaranteed current (they form the cache key),
+    but the baked .blend snapshots materials, lights, camera, and visibility
+    as they were at bake time. Without this, render-only config changes are
+    silently ignored on every cache hit. Returns the (rebuilt) camera.
+    """
+    die_mod.reapply_materials(die_obj, cfg.die)
+
+    # Lights: delete and rebuild (also resets the world background).
+    for obj in [o for o in bpy.data.objects if o.type == "LIGHT"]:
+        bpy.data.objects.remove(obj, do_unlink=True)
+    scene_mod.build_lighting(cfg.lighting)
+
+    # Camera: delete and rebuild; track/orbit keyframes are applied later in
+    # the pipeline, so nothing baked into the old camera is lost.
+    for name in ("Camera", "CameraTarget"):
+        obj = bpy.data.objects.get(name)
+        if obj is not None:
+            bpy.data.objects.remove(obj, do_unlink=True)
+    cam = scene_mod.build_camera(cfg.camera)
+    if cfg.camera.dof_enabled and cfg.camera.dof_focus_object:
+        focus_obj = bpy.data.objects.get(cfg.camera.dof_focus_object)
+        if focus_obj is not None:
+            cam.data.dof.focus_object = focus_obj
+
+    # Table / bumper appearance (not their physics, which matched the key).
+    table = bpy.data.objects.get("Table")
+    if table is not None:
+        table.hide_render = not cfg.table.visible
+        mat = table.data.materials[0] if table.data.materials else None
+        if mat is not None and mat.use_nodes:
+            bsdf = mat.node_tree.nodes.get("Principled BSDF")
+            if bsdf is not None:
+                bsdf.inputs["Base Color"].default_value = cfg.table.color
+                bsdf.inputs["Roughness"].default_value = cfg.table.roughness
+    for obj in bpy.data.objects:
+        if obj.name.startswith("Bumper"):
+            obj.hide_render = not cfg.table.bumpers_visible
+
+    return cam
 
 
 def _clear_scene() -> None:

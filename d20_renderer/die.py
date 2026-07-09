@@ -93,6 +93,51 @@ def _apply_bevel(die: Object, cfg: DieConfig) -> None:
 # ----------------------------------------------------------------------------
 
 
+def _apply_label_material(txt: Object, face_idx: int, cfg: DieConfig) -> None:
+    """Create and assign the ink/inset material for one face label."""
+    mat = bpy.data.materials.new(name=f"DieInk_{face_idx:02d}")
+    mat.use_nodes = True
+    bsdf = mat.node_tree.nodes["Principled BSDF"]
+
+    # Use inset material properties when style is inset, otherwise use number properties
+    if cfg.number_style == "inset":
+        color = cfg.inset_color
+        roughness = cfg.inset_roughness
+        metallic = cfg.inset_metallic
+        ior = cfg.inset_ior
+    else:
+        # Decal or raised: use number material properties
+        color = cfg.number_color
+        roughness = cfg.number_roughness
+        metallic = cfg.number_metallic
+        ior = cfg.body_ior  # default to body IOR for non-inset
+
+    bsdf.inputs["Base Color"].default_value = color
+    bsdf.inputs["Roughness"].default_value = roughness
+    bsdf.inputs["Metallic"].default_value = metallic
+    bsdf.inputs["IOR"].default_value = ior
+    txt.data.materials.append(mat)
+
+
+def reapply_materials(die: Object, cfg: DieConfig) -> None:
+    """Re-apply render-only die config to an existing die and its labels.
+
+    A physics cache hit loads the entire scene from the baked .blend, which
+    carries the materials and label glyphs from bake time. Physics-relevant
+    fields are guaranteed to match (they're in the cache key), but material
+    fields and label sizing may have changed since the bake — re-sync them.
+    """
+    die.data.materials.clear()
+    _apply_body_material(die, cfg)
+    text_height = cfg.font_scale * _icosahedron_inradius(cfg.size)
+    for child in die.children:
+        if child.name.startswith("DieLabel_"):
+            face_idx = int(child.name.rsplit("_", 1)[1])
+            child.data.materials.clear()
+            _apply_label_material(child, face_idx, cfg)
+            child.data.size = text_height
+
+
 def _apply_body_material(die: Object, cfg: DieConfig) -> None:
     mat = bpy.data.materials.new(name="DieBody")
     mat.use_nodes = True
@@ -141,6 +186,11 @@ def _setup_rigid_body(die: Object, cfg: DieConfig) -> None:
     rb.angular_damping = cfg.angular_damping
     rb.collision_shape = cfg.collision_shape
     rb.collision_margin = cfg.collision_margin
+    # Bullet sleeps bodies below its deactivation thresholds (Blender defaults:
+    # 0.4 m/s / 0.5 rad/s) — high enough to freeze a tumbling die mid-roll.
+    rb.use_deactivation = cfg.use_deactivation
+    rb.deactivate_linear_velocity = cfg.deactivation_linear_velocity
+    rb.deactivate_angular_velocity = cfg.deactivation_angular_velocity
 
 
 # ----------------------------------------------------------------------------
@@ -235,28 +285,7 @@ def _build_face_labels(die: Object, cfg: DieConfig) -> list[Object]:
         txt.rotation_quaternion = rot_quat
 
         # Material: ink color (or carved surface for inset)
-        mat = bpy.data.materials.new(name=f"DieInk_{face_idx:02d}")
-        mat.use_nodes = True
-        bsdf = mat.node_tree.nodes["Principled BSDF"]
-
-        # Use inset material properties when style is inset, otherwise use number properties
-        if cfg.number_style == "inset":
-            color = cfg.inset_color
-            roughness = cfg.inset_roughness
-            metallic = cfg.inset_metallic
-            ior = cfg.inset_ior
-        else:
-            # Decal or raised: use number material properties
-            color = cfg.number_color
-            roughness = cfg.number_roughness
-            metallic = cfg.number_metallic
-            ior = cfg.body_ior  # default to body IOR for non-inset
-
-        bsdf.inputs["Base Color"].default_value = color
-        bsdf.inputs["Roughness"].default_value = roughness
-        bsdf.inputs["Metallic"].default_value = metallic
-        bsdf.inputs["IOR"].default_value = ior
-        txt.data.materials.append(mat)
+        _apply_label_material(txt, face_idx, cfg)
 
         # Store reference: will apply face value and convert to mesh later if needed
         # For now, keep as text object (allows setting body text)

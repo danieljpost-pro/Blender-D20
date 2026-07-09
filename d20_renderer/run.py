@@ -131,6 +131,13 @@ def _build_parser() -> argparse.ArgumentParser:
         help="Quick downscale: 25, 50, 75, 100. Cheaper than changing resolution.",
     )
     g_res.add_argument("--fps", type=int, default=None)
+    g_res.add_argument(
+        "--slow-motion",
+        type=float,
+        default=None,
+        metavar="FACTOR",
+        help="Render-time slow motion via frame remap (2.0 = half speed). No re-bake needed.",
+    )
 
     # --- Frame range / preview ---
     g_frames = p.add_argument_group("frame range & preview")
@@ -199,9 +206,20 @@ def _build_parser() -> argparse.ArgumentParser:
     g_feat.add_argument("--no-rim-light", action="store_true")
     g_feat.add_argument("--no-fill-light", action="store_true")
     g_feat.add_argument(
+        "--top-light",
+        action="store_true",
+        help="Enable the near-overhead 'result' light that brightens the settled up-face.",
+    )
+    g_feat.add_argument("--no-top-light", action="store_true")
+    g_feat.add_argument(
         "--no-camera-orbit",
         action="store_true",
         help="Disable the post-settle camera move to a top-down close-up.",
+    )
+    g_feat.add_argument(
+        "--track-die",
+        action="store_true",
+        help="Re-aim the camera at the die each frame so it stays centered.",
     )
     g_feat.add_argument(
         "--camera-orbit-frames",
@@ -376,6 +394,8 @@ def _apply_cli_overrides(cfg: PipelineConfig, args: argparse.Namespace) -> None:
         cfg.render.resolution_percentage = args.resolution_percent
     if args.fps is not None:
         cfg.render.fps = args.fps
+    if args.slow_motion is not None:
+        cfg.render.slow_motion_factor = args.slow_motion
 
     # Frame range / preview
     if args.frame_start is not None:
@@ -412,8 +432,14 @@ def _apply_cli_overrides(cfg: PipelineConfig, args: argparse.Namespace) -> None:
         cfg.lighting.rim_enabled = False
     if args.no_fill_light:
         cfg.lighting.fill_enabled = False
+    if args.top_light:
+        cfg.lighting.top_enabled = True
+    if args.no_top_light:
+        cfg.lighting.top_enabled = False
     if args.no_camera_orbit:
         cfg.camera.orbit_enabled = False
+    if args.track_die:
+        cfg.camera.track_die = True
     if args.camera_orbit_frames is not None:
         cfg.camera.orbit_duration_frames = args.camera_orbit_frames
     if args.camera_orbit_hold is not None:

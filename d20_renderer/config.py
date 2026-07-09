@@ -48,9 +48,10 @@ class TableConfig:
     visible: bool = True         # set False to hide table in render
     physics_enabled: bool = True # set False to remove table rigid body entirely
 
-    # Bumpers: invisible walls to keep the die in frame.
+    # Bumpers: invisible octagonal wall ring to keep the die in frame.
     bumpers_enabled: bool = True
     bumpers_height: float = 0.10  # meters above the table top
+    bumpers_thickness: float = 0.02  # wall thickness; too thin lets a fast die tunnel through
     bumpers_visible: bool = False  # render them or just collide with them
     bumpers_restitution: float = 0.4
     bumpers_friction: float = 0.5
@@ -131,6 +132,11 @@ class DieConfig:
     angular_damping: float = 0.10
     collision_margin: float = 0.0002  # Bullet quirk; small but nonzero
     collision_shape: Literal["CONVEX_HULL", "MESH"] = "CONVEX_HULL"
+    # Bullet sleep thresholds. Blender's defaults (0.4 m/s, 0.5 rad/s) freeze a
+    # slow-tumbling die mid-roll; lower values let the roll play out longer.
+    use_deactivation: bool = True
+    deactivation_linear_velocity: float = 0.4  # m/s (Blender default)
+    deactivation_angular_velocity: float = 0.5  # rad/s (Blender default)
 
 
 # ----------------------------------------------------------------------------
@@ -188,7 +194,10 @@ class CameraConfig:
     orbit_hold_frames: int = 24  # 1s held on top-down view
     orbit_end_distance: float = 0.18  # camera distance from die center at end (m)
     orbit_end_tilt_deg: float = 15.0  # degrees off straight-down; 0 = exactly overhead
-    orbit_end_roll_deg: float = 0.0  # clockwise roll applied at orbit end (degrees)
+    # Clockwise camera roll (degrees) held constant across the entire shot —
+    # invisible against a void background, but it sets which way the settled
+    # up-face reads. Requires track_die for the pre-orbit phase.
+    orbit_end_roll_deg: float = 0.0
 
 
 # ----------------------------------------------------------------------------
@@ -217,6 +226,17 @@ class LightingConfig:
     rim_color: RGBA = (1.0, 1.0, 1.0, 1.0)
     rim_energy: float = 35.0
 
+    # Top ("result") light: a near-overhead area light placed close to the
+    # camera's mirror position about the vertical, so its reflection off the
+    # horizontal up-face lands almost directly in the camera — making the
+    # settled result face read visibly brighter than the tilted faces.
+    top_enabled: bool = False
+    top_location: Vec3 = (-0.01, 0.10, 1.0)
+    top_rotation_euler: Vec3 = (0.0, 0.0, 0.0)  # area light faces -Z: straight down
+    top_color: RGBA = (1.0, 1.0, 1.0, 1.0)
+    top_energy: float = 60.0
+    top_size: float = 0.3
+
     # Environment
     hdri_path: str | None = None  # if set, overrides background color
     hdri_strength: float = 1.0
@@ -241,6 +261,10 @@ class RenderConfig:
     fps: int = 30
     samples: int = 128  # Cycles samples
     use_denoiser: bool = False  # bundled Blender lacks OIDN support
+    # Render-time slow motion via Blender's frame remap. 2.0 = half speed.
+    # Stretches everything (roll AND camera moves) — shorten orbit frame
+    # counts to keep the reveal tempo. Does not touch the physics bake.
+    slow_motion_factor: float = 1.0
     use_motion_blur: bool = True
     motion_blur_shutter: float = 0.5
     output_format: Literal["FFMPEG", "PNG"] = "FFMPEG"

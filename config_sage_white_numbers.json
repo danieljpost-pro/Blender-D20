@@ -1,0 +1,135 @@
+{
+  "die": {
+    "body_color": [
+      0.13,
+      0.006,
+      0.021,
+      1.0
+    ],
+    "body_roughness": 0.18,
+    "body_transmission": 0.1,
+    "bevel_amount": 0.0,
+    "number_color": [
+      0.95,
+      0.95,
+      0.95,
+      1.0
+    ],
+    "restitution": 0.7,
+    "angular_damping": 0.05,
+    "linear_damping": 0.02,
+    "deactivation_linear_velocity": 0.03,
+    "deactivation_angular_velocity": 0.1,
+    "size": 0.03,
+    "mass": 0.042,
+    "font_scale": 0.63
+  },
+  "table": {
+    "visible": false,
+    "restitution": 0.55,
+    "size": [
+      0.24,
+      0.24,
+      0.02
+    ],
+    "bumpers_height": 2.0,
+    "bumpers_restitution": 0.75,
+    "bumpers_thickness": 0.03
+  },
+  "physics": {
+    "initial_position": [
+      -0.054,
+      0.035,
+      0.55
+    ],
+    "initial_linear_velocity": [
+      2.5,
+      -1.6,
+      1.0
+    ],
+    "initial_angular_velocity": [
+      48.0,
+      36.0,
+      56.0
+    ],
+    "initial_rotation_euler": [
+      1.8,
+      1.1,
+      1.0
+    ]
+  },
+  "lighting": {
+    "key_enabled": true,
+    "key_color": [
+      1.0,
+      0.06,
+      0.04,
+      1.0
+    ],
+    "key_energy": 210.0,
+    "key_location": [
+      1.08,
+      -0.63,
+      1.43
+    ],
+    "fill_enabled": false,
+    "rim_enabled": false,
+    "background_color": [
+      0.0,
+      0.0,
+      0.0,
+      1.0
+    ],
+    "background_strength": 0.02,
+    "top_enabled": true,
+    "top_location": [
+      -0.01,
+      -0.1,
+      1.0
+    ],
+    "top_color": [
+      1.0,
+      1.0,
+      1.0,
+      1.0
+    ],
+    "top_energy": 3.5,
+    "top_size": 0.6
+  },
+  "camera": {
+    "location": [
+      0.008,
+      0.064,
+      0.647
+    ],
+    "focal_length_mm": 50.0,
+    "dof_enabled": true,
+    "dof_fstop": 0.95,
+    "orbit_end_distance": 0.45,
+    "orbit_duration_frames": 19,
+    "look_at": [
+      0.0,
+      0.0,
+      0.12
+    ],
+    "track_die": true,
+    "orbit_hold_frames": 10,
+    "orbit_start_offset_frames": 3,
+    "orbit_end_roll_deg": -45.0,
+    "orbit_end_tilt_deg": 6.0
+  },
+  "render": {
+    "resolution_x": 1280,
+    "resolution_y": 720,
+    "fps": 24,
+    "resolution_percentage": 100,
+    "samples": 64,
+    "engine": "CYCLES",
+    "device": "CPU",
+    "output_dir": "./renders/sage_white_numbers",
+    "slow_motion_factor": 2.5
+  },
+  "desired_outcomes": [
+    20
+  ]
+}
