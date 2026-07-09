@@ -42,3 +42,6 @@ Thumbs.db
 *.swp
 *.swo
 .d20_cache/*
+
+# Inspection blends (regenerable via --save-blend)
+*.blend
