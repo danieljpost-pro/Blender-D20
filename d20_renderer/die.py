@@ -119,6 +119,87 @@ def _apply_label_material(txt: Object, face_idx: int, cfg: DieConfig) -> None:
     txt.data.materials.append(mat)
 
 
+def carve_labels(die: Object, cfg: DieConfig) -> None:
+    """Boolean-carve each label glyph into the die surface (inset style only).
+
+    The "inset" number_style used to just sink flat text to the surface
+    plane, which reads as flat paint. Real engraving needs cavities: for
+    each label, build a slightly-outset, thickened cutter mesh from the
+    glyph, boolean-subtract it from the die, then sink the visible text
+    below the face so the cavity walls shadow it.
+
+    Runs per outcome after `assign_outcome_to_face` (glyphs differ per
+    outcome). The die mesh is restored from a pristine copy each time so
+    carves never accumulate. Safe post-bake: rigid-body playback moves the
+    object transform only, and carving is concave so the convex hull the
+    solver used is unchanged.
+    """
+    if cfg.number_style != "inset":
+        return
+    import mathutils
+
+    depth = max(cfg.number_inset_depth, 1e-5)
+
+    # Restore pristine mesh so carves don't accumulate across outcomes.
+    key = "d20_pristine_mesh"
+    pristine = bpy.data.meshes.get(die[key]) if key in die else None
+    if pristine is None:
+        pristine = die.data.copy()
+        pristine.name = "DiePristineMesh"
+        pristine.use_fake_user = True
+        die[key] = pristine.name
+    old = die.data
+    die.data = pristine.copy()
+    if old is not pristine and old.users == 0:
+        bpy.data.meshes.remove(old)
+
+    for label in [c for c in die.children if c.name.startswith("DieLabel_")]:
+        if "d20_base_loc" not in label:
+            label["d20_base_loc"] = tuple(label.location)
+        base_loc = mathutils.Vector(label["d20_base_loc"])
+
+        # Cutter: outset + thickened copy of the glyph at its built position.
+        src = label.copy()
+        src.data = label.data.copy()
+        bpy.context.collection.objects.link(src)
+        src.location = base_loc
+        # No curve offset here: outsetting font outlines self-intersects
+        # (counters invert), yielding non-manifold cutters that make the
+        # EXACT solver carve away the whole body.
+        src.data.extrude = depth * 1.5
+        bpy.context.view_layer.update()
+        deps = bpy.context.evaluated_depsgraph_get()
+        cut_mesh = bpy.data.meshes.new_from_object(src.evaluated_get(deps))
+        cut_mesh.validate(clean_customdata=True)
+        import bmesh as _bmesh
+
+        bm = _bmesh.new()
+        bm.from_mesh(cut_mesh)
+        _bmesh.ops.recalc_face_normals(bm, faces=bm.faces)
+        bm.to_mesh(cut_mesh)
+        bm.free()
+        cutter = bpy.data.objects.new("LabelCutter", cut_mesh)
+        bpy.context.collection.objects.link(cutter)
+        cutter.matrix_world = src.matrix_world.copy()
+        bpy.data.objects.remove(src, do_unlink=True)
+
+        mod = die.modifiers.new(name="carve", type="BOOLEAN")
+        mod.operation = "DIFFERENCE"
+        mod.solver = "EXACT"
+        mod.object = cutter
+        bpy.ops.object.select_all(action="DESELECT")
+        die.select_set(True)
+        bpy.context.view_layer.objects.active = die
+        bpy.ops.object.modifier_apply(modifier=mod.name)
+        bpy.data.objects.remove(cutter, do_unlink=True)
+        bpy.data.meshes.remove(cut_mesh)
+
+        # Sink the visible glyph below the face, inside its cavity.
+        n_local = label.rotation_quaternion @ mathutils.Vector((0.0, 0.0, 1.0))
+        label.location = base_loc - n_local * (depth * 0.35)
+        label.data.extrude = depth * 0.15
+
+
 def reapply_materials(die: Object, cfg: DieConfig) -> None:
     """Re-apply render-only die config to an existing die and its labels.
 

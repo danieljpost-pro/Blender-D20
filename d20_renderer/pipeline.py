@@ -204,6 +204,9 @@ def run(cfg: PipelineConfig) -> None:
 
         log.info(f"outcome {idx}/{total_outcomes}: relabeling die for value {outcome}...")
         die_mod.assign_outcome_to_face(die_obj, up_face_index=up_face, desired_value=outcome)
+        if cfg.die.number_style == "inset":
+            log.info(f"outcome {idx}/{total_outcomes}: carving inset labels...")
+            die_mod.carve_labels(die_obj, cfg.die)
 
         # Configure + render
         log.info(f"outcome {idx}/{total_outcomes}: configuring render...")

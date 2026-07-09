@@ -22,7 +22,16 @@
     "deactivation_angular_velocity": 0.1,
     "size": 0.03,
     "mass": 0.042,
-    "font_scale": 0.63
+    "font_scale": 0.63,
+    "number_style": "inset",
+    "inset_color": [
+      0.95,
+      0.95,
+      0.95,
+      1.0
+    ],
+    "inset_roughness": 0.7,
+    "number_inset_depth": 0.002
   },
   "table": {
     "visible": false,
