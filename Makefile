@@ -53,6 +53,10 @@ help:
 	@echo "INSPECTION:"
 	@echo "  make save-blend           Build, simulate, save .blend (no render)"
 	@echo ""
+	@echo "BATCH OPERATIONS:"
+	@echo "  make inspect-configs      Show what each config_*.json file does"
+	@echo "  make batch-render         Render all config_*.json into separate dirs"
+	@echo ""
 	@echo "DEV TOOLING:"
 	@echo "  make lint                 ruff check"
 	@echo "  make format               ruff format + auto-fix"
@@ -171,6 +175,19 @@ clean-renders:
 .PHONY: clean
 clean: clean-cache clean-renders
 	find . -type d -name __pycache__ -exec rm -rf {} + 2>/dev/null || true
+
+# ─── Batch operations ────────────────────────────────────────────────────────
+
+# Inspect all config files and show what each does
+.PHONY: inspect-configs
+inspect-configs:
+	$(PYTHON) inspect_configs.py
+
+# Render multiple configs into separate output directories
+# Usage: make batch-render PATTERN='config_*.json' [EXTRA_FLAGS='--dry-run']
+.PHONY: batch-render
+batch-render:
+	$(PYTHON) batch_render.py $(PATTERN) $(EXTRA_FLAGS)
 
 # ─── Inspection ──────────────────────────────────────────────────────────────
 

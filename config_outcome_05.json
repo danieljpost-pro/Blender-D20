@@ -1,0 +1,35 @@
+{
+  "die": {
+    "size": 0.0375,
+    "body_color": [
+      1.0,
+      0.8,
+      0.2,
+      1.0
+    ],
+    "number_color": [
+      0.05,
+      0.1,
+      0.4,
+      1.0
+    ]
+  },
+  "table": {
+    "color": [
+      0.2,
+      0.4,
+      1.0,
+      1.0
+    ]
+  },
+  "render": {
+    "resolution_x": 540,
+    "resolution_y": 1080,
+    "fps": 30,
+    "resolution_percentage": 50,
+    "samples": 24,
+    "engine": "CYCLES",
+    "device": "CPU",
+    "use_denoiser": false
+  }
+}

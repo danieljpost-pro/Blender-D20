@@ -1,0 +1,92 @@
+{
+  "die": {
+    "body_color": [
+      0.0,
+      1.0,
+      1.0,
+      1.0
+    ],
+    "body_roughness": 0.1,
+    "body_transmission": 0.15,
+    "number_color": [
+      0.0,
+      0.0,
+      0.0,
+      1.0
+    ]
+  },
+  "table": {
+    "visible": false
+  },
+  "physics": {
+    "initial_linear_velocity": [
+      2.6,
+      -1.3,
+      0.35
+    ],
+    "initial_angular_velocity": [
+      16.0,
+      11.0,
+      15.0
+    ]
+  },
+  "lighting": {
+    "key_enabled": true,
+    "key_color": [
+      1.0,
+      0.0,
+      0.0,
+      1.0
+    ],
+    "key_energy": 120.0,
+    "key_location": [
+      1.0,
+      0.0,
+      1.2
+    ],
+    "fill_enabled": false,
+    "rim_enabled": true,
+    "rim_color": [
+      0.0,
+      1.0,
+      1.0,
+      1.0
+    ],
+    "rim_energy": 140.0,
+    "rim_location": [
+      -1.0,
+      0.5,
+      0.8
+    ],
+    "background_color": [
+      0.0,
+      0.0,
+      0.0,
+      1.0
+    ],
+    "background_strength": 0.1
+  },
+  "camera": {
+    "location": [
+      0.0,
+      -0.4,
+      0.45
+    ],
+    "focal_length_mm": 40.0,
+    "dof_enabled": true,
+    "dof_fstop": 1.2
+  },
+  "render": {
+    "resolution_x": 1280,
+    "resolution_y": 720,
+    "fps": 24,
+    "resolution_percentage": 100,
+    "samples": 64,
+    "engine": "CYCLES",
+    "device": "CPU",
+    "output_dir": "./renders/pure_red_cyan"
+  },
+  "desired_outcomes": [
+    20
+  ]
+}

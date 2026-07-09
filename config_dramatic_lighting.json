@@ -1,0 +1,44 @@
+{
+  "die": {
+    "size": 0.0375,
+    "body_color": [0.02, 0.12, 0.03, 1.0],
+    "number_color": [0.005, 0.005, 0.005, 1.0],
+    "number_roughness": 1.0
+  },
+  "camera": {
+    "location": [0.0, -0.18, 0.25],
+    "look_at": [0.0, 0.0, 0.12],
+    "focal_length_mm": 35.0
+  },
+  "table": {
+    "color": [0.8, 0.7, 0.55, 1.0]
+  },
+  "lighting": {
+    "key_enabled": true,
+    "key_type": "AREA",
+    "key_location": [0.5, -0.35, 0.7],
+    "key_rotation_euler": [0.7, 0.3, 0.5],
+    "key_color": [1.0, 0.6, 0.1, 1.0],
+    "key_energy": 200.0,
+    "key_size": 0.5,
+    "fill_enabled": true,
+    "fill_location": [-0.4, -0.2, 0.35],
+    "fill_color": [0.1, 0.3, 0.8, 1.0],
+    "fill_energy": 4.0,
+    "rim_enabled": true,
+    "rim_location": [0.0, 0.6, 0.4],
+    "rim_color": [0.8, 0.9, 1.0, 1.0],
+    "rim_energy": 35.0,
+    "background_color": [0.01, 0.01, 0.02, 1.0]
+  },
+  "render": {
+    "resolution_x": 810,
+    "resolution_y": 1620,
+    "fps": 30,
+    "resolution_percentage": 75,
+    "samples": 24,
+    "engine": "CYCLES",
+    "device": "CPU",
+    "use_denoiser": false
+  }
+}

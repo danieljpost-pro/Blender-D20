@@ -1,0 +1,14 @@
+make the dice roll take longer - give the viewer enough time to register that it's a dice roll before the reveal
+
+keep the die in the center, make the zoom less "intense"
+
+
+or make the zoom none.
+
+
+*maybe* make the background a solid greenscreen color so Sage can edit it out
+
+
+do sharp edges, not rounded.
+
+colors: dark red die, black (invisible) bg, black or white lettering (try both)
