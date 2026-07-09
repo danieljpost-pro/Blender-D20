@@ -362,6 +362,49 @@ def animate_camera_orbit(
     return end_f
 
 
+def apply_greenscreen() -> None:
+    """Make every non-die surface a camera-only pure-green emitter.
+
+    Table and bumpers become #00ff00 emission surfaces visible ONLY to
+    camera rays — excluded from diffuse/glossy/transmission/shadow — so
+    they key as flat green with zero green spill on the die. Emission also
+    ignores lights and shadows, so the green is uniform. The view transform
+    is switched to Standard because AgX/Filmic would tone-map (0,1,0) away
+    from pure #00ff00 (this slightly changes the die's look vs. normal
+    renders; acceptable for keying workflows).
+    """
+    mat = bpy.data.materials.get("GreenscreenEmission")
+    if mat is None:
+        mat = bpy.data.materials.new("GreenscreenEmission")
+        mat.use_nodes = True
+        nodes = mat.node_tree.nodes
+        nodes.clear()
+        out = nodes.new("ShaderNodeOutputMaterial")
+        em = nodes.new("ShaderNodeEmission")
+        em.inputs["Color"].default_value = (0.0, 1.0, 0.0, 1.0)
+        em.inputs["Strength"].default_value = 1.0
+        mat.node_tree.links.new(em.outputs["Emission"], out.inputs["Surface"])
+
+    for obj in bpy.data.objects:
+        if obj.type != "MESH":
+            continue
+        if obj.name != "Table" and not obj.name.startswith("Bumper"):
+            continue
+        obj.hide_render = False
+        obj.data.materials.clear()
+        obj.data.materials.append(mat)
+        obj.visible_camera = True
+        obj.visible_diffuse = False
+        obj.visible_glossy = False
+        obj.visible_transmission = False
+        obj.visible_volume_scatter = False
+        obj.visible_shadow = False
+
+    scene = bpy.context.scene
+    scene.view_settings.view_transform = "Standard"
+    scene.view_settings.look = "None"
+
+
 # ----------------------------------------------------------------------------
 # Lighting
 # ----------------------------------------------------------------------------

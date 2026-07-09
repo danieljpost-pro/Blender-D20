@@ -182,6 +182,11 @@ def run(cfg: PipelineConfig) -> None:
         log.stage("render", "SKIPPED (stages.do_render=False)")
         return
 
+    # ---- Stage 3.75: Greenscreen (opt-in) ----
+    if cfg.render.greenscreen:
+        log.stage("greenscreen", "table+walls -> camera-only pure green")
+        scene_mod.apply_greenscreen()
+
     # ---- Stage 4: Per-outcome render (each cache-gated) ----
     os.makedirs(cfg.render.output_dir, exist_ok=True)
     ext = render_mod.output_extension(cfg.render)
@@ -223,7 +228,7 @@ def run(cfg: PipelineConfig) -> None:
     log.info("Pipeline complete. All outcomes rendered.")
 
 
-def _resync_render_only_config(cfg: PipelineConfig, die_obj) -> "bpy.types.Object":
+def _resync_render_only_config(cfg: PipelineConfig, die_obj) -> bpy.types.Object:
     """Re-apply render-only config on top of a scene loaded from the physics
     cache .blend.
 

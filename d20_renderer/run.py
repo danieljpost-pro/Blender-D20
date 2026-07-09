@@ -212,6 +212,11 @@ def _build_parser() -> argparse.ArgumentParser:
     )
     g_feat.add_argument("--no-top-light", action="store_true")
     g_feat.add_argument(
+        "--greenscreen",
+        action="store_true",
+        help="Render table+walls as camera-only pure #00ff00 for chroma keying (no spill on die).",
+    )
+    g_feat.add_argument(
         "--no-camera-orbit",
         action="store_true",
         help="Disable the post-settle camera move to a top-down close-up.",
@@ -436,6 +441,8 @@ def _apply_cli_overrides(cfg: PipelineConfig, args: argparse.Namespace) -> None:
         cfg.lighting.top_enabled = True
     if args.no_top_light:
         cfg.lighting.top_enabled = False
+    if args.greenscreen:
+        cfg.render.greenscreen = True
     if args.no_camera_orbit:
         cfg.camera.orbit_enabled = False
     if args.track_die:
