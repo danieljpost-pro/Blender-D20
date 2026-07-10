@@ -102,6 +102,11 @@ def _build_parser() -> argparse.ArgumentParser:
     g_render.add_argument("--no-denoiser", action="store_true", help="Disable Cycles denoiser.")
     g_render.add_argument("--no-motion-blur", action="store_true")
     g_render.add_argument(
+        "--motion-blur",
+        action="store_true",
+        help="Enable motion blur (off by default; ~7%% slower, softer edges).",
+    )
+    g_render.add_argument(
         "--simplify",
         type=int,
         default=None,
@@ -388,6 +393,8 @@ def _apply_cli_overrides(cfg: PipelineConfig, args: argparse.Namespace) -> None:
         cfg.render.use_denoiser = False
     if args.no_motion_blur:
         cfg.render.use_motion_blur = False
+    if args.motion_blur:
+        cfg.render.use_motion_blur = True
     if args.simplify is not None:
         cfg.render.simplify_enabled = True
         cfg.render.simplify_subdivision = args.simplify

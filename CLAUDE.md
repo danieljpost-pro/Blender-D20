@@ -97,6 +97,7 @@ ones to know about:
 --device CPU|GPU
 --samples N
 --no-denoiser
+--motion-blur       # blur is OFF by default (measured ~7% faster)
 --no-motion-blur
 --simplify N        # global simplify with max subdiv N
 --persistent-data   # Cycles BVH retention

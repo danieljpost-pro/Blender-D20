@@ -194,6 +194,23 @@ def carve_labels(die: Object, cfg: DieConfig) -> None:
         bpy.data.objects.remove(cutter, do_unlink=True)
         bpy.data.meshes.remove(cut_mesh)
 
+        # Heal boolean damage: tiny glyph counters (the holes in 8/9/0)
+        # survive as slender island columns that EXACT sometimes chews
+        # through, leaving open micro-holes in the die shell — primary rays
+        # then pass through the die to the chroma wall behind (green dots in
+        # the lettering). Weld near-duplicate verts and cap any boundary
+        # loops the boolean left behind.
+        import bmesh as _bm2
+
+        bm = _bm2.new()
+        bm.from_mesh(die.data)
+        _bm2.ops.remove_doubles(bm, verts=bm.verts, dist=1e-6)
+        boundary = [e for e in bm.edges if e.is_boundary]
+        if boundary:
+            _bm2.ops.holes_fill(bm, edges=boundary)
+        bm.to_mesh(die.data)
+        bm.free()
+
         # Fill the cavity with the glyph almost to the face. A thin sheet at
         # the cavity bottom leaves an open channel above it, which reads as
         # see-through slots (background showing through the lettering) when

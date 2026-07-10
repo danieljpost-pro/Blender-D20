@@ -270,7 +270,10 @@ class RenderConfig:
     # transform switches to Standard so the chroma stays exactly pure.
     greenscreen: bool = False
     greenscreen_color: RGBA = (0.0, 1.0, 0.0, 1.0)  # e.g. (0,0,1,1) for bluescreen
-    use_motion_blur: bool = True
+    # Off by default: measured ~7% faster on full renders (26m36s -> 24m40s
+    # for a 1080x1080 x64-sample video), and crisp edges key better against
+    # chroma screens. Re-enable per render with --motion-blur.
+    use_motion_blur: bool = False
     motion_blur_shutter: float = 0.5
     output_format: Literal["FFMPEG", "PNG"] = "FFMPEG"
     ffmpeg_codec: str = "H264"
