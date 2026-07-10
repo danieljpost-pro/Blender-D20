@@ -194,10 +194,15 @@ def carve_labels(die: Object, cfg: DieConfig) -> None:
         bpy.data.objects.remove(cutter, do_unlink=True)
         bpy.data.meshes.remove(cut_mesh)
 
-        # Sink the visible glyph below the face, inside its cavity.
+        # Fill the cavity with the glyph almost to the face. A thin sheet at
+        # the cavity bottom leaves an open channel above it, which reads as
+        # see-through slots (background showing through the lettering) when
+        # a carved face passes near the silhouette. A near-full plug with a
+        # slight recess blocks those grazing rays and matches how real dice
+        # ink fills the engraving.
         n_local = label.rotation_quaternion @ mathutils.Vector((0.0, 0.0, 1.0))
-        label.location = base_loc - n_local * (depth * 0.35)
-        label.data.extrude = depth * 0.15
+        label.location = base_loc - n_local * (depth * 0.8)
+        label.data.extrude = depth * 0.7
 
 
 def reapply_materials(die: Object, cfg: DieConfig) -> None:
