@@ -265,10 +265,11 @@ class RenderConfig:
     # Stretches everything (roll AND camera moves) — shorten orbit frame
     # counts to keep the reveal tempo. Does not touch the physics bake.
     slow_motion_factor: float = 1.0
-    # Greenscreen mode: table + walls become camera-only pure #00ff00
-    # emitters (no green light or reflections reach the die) and the view
-    # transform switches to Standard so the green stays exactly pure.
+    # Greenscreen mode: table + walls become camera-only pure-chroma
+    # emitters (no colored light or reflections reach the die) and the view
+    # transform switches to Standard so the chroma stays exactly pure.
     greenscreen: bool = False
+    greenscreen_color: RGBA = (0.0, 1.0, 0.0, 1.0)  # e.g. (0,0,1,1) for bluescreen
     use_motion_blur: bool = True
     motion_blur_shutter: float = 0.5
     output_format: Literal["FFMPEG", "PNG"] = "FFMPEG"

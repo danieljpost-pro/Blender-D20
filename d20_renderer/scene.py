@@ -362,16 +362,16 @@ def animate_camera_orbit(
     return end_f
 
 
-def apply_greenscreen() -> None:
-    """Make every non-die surface a camera-only pure-green emitter.
+def apply_greenscreen(color: tuple = (0.0, 1.0, 0.0, 1.0)) -> None:
+    """Make every non-die surface a camera-only pure-`color` emitter.
 
-    Table and bumpers become #00ff00 emission surfaces visible ONLY to
-    camera rays — excluded from diffuse/glossy/transmission/shadow — so
-    they key as flat green with zero green spill on the die. Emission also
-    ignores lights and shadows, so the green is uniform. The view transform
-    is switched to Standard because AgX/Filmic would tone-map (0,1,0) away
-    from pure #00ff00 (this slightly changes the die's look vs. normal
-    renders; acceptable for keying workflows).
+    Table and bumpers become emission surfaces visible ONLY to camera
+    rays — excluded from diffuse/glossy/transmission/shadow — so they key
+    as a flat chroma color with zero spill on the die. Emission also
+    ignores lights and shadows, so the color is uniform. The view transform
+    is switched to Standard because AgX/Filmic would tone-map pure channel
+    values away from exact #00ff00 / #0000ff (this slightly changes the
+    die's look vs. normal renders; acceptable for keying workflows).
     """
     mat = bpy.data.materials.get("GreenscreenEmission")
     if mat is None:
@@ -381,9 +381,10 @@ def apply_greenscreen() -> None:
         nodes.clear()
         out = nodes.new("ShaderNodeOutputMaterial")
         em = nodes.new("ShaderNodeEmission")
-        em.inputs["Color"].default_value = (0.0, 1.0, 0.0, 1.0)
         em.inputs["Strength"].default_value = 1.0
         mat.node_tree.links.new(em.outputs["Emission"], out.inputs["Surface"])
+    em = next(n for n in mat.node_tree.nodes if n.type == "EMISSION")
+    em.inputs["Color"].default_value = color
 
     for obj in bpy.data.objects:
         if obj.type != "MESH":

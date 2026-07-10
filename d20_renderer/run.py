@@ -214,7 +214,14 @@ def _build_parser() -> argparse.ArgumentParser:
     g_feat.add_argument(
         "--greenscreen",
         action="store_true",
-        help="Render table+walls as camera-only pure #00ff00 for chroma keying (no spill on die).",
+        help="Render table+walls as camera-only pure chroma for keying (no spill on die).",
+    )
+    g_feat.add_argument(
+        "--screen-color",
+        type=str,
+        default=None,
+        metavar="R,G,B",
+        help="Chroma color for --greenscreen as linear R,G,B in 0..1 (default 0,1,0; use 0,0,1 for bluescreen).",
     )
     g_feat.add_argument(
         "--no-camera-orbit",
@@ -443,6 +450,12 @@ def _apply_cli_overrides(cfg: PipelineConfig, args: argparse.Namespace) -> None:
         cfg.lighting.top_enabled = False
     if args.greenscreen:
         cfg.render.greenscreen = True
+    if args.screen_color is not None:
+        try:
+            r, g, b = (float(x) for x in args.screen_color.split(","))
+        except ValueError:
+            raise SystemExit(f"--screen-color must be R,G,B floats, got {args.screen_color!r}") from None
+        cfg.render.greenscreen_color = (r, g, b, 1.0)
     if args.no_camera_orbit:
         cfg.camera.orbit_enabled = False
     if args.track_die:

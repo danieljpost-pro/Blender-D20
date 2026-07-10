@@ -184,8 +184,8 @@ def run(cfg: PipelineConfig) -> None:
 
     # ---- Stage 3.75: Greenscreen (opt-in) ----
     if cfg.render.greenscreen:
-        log.stage("greenscreen", "table+walls -> camera-only pure green")
-        scene_mod.apply_greenscreen()
+        log.stage("greenscreen", f"table+walls -> camera-only pure {cfg.render.greenscreen_color[:3]}")
+        scene_mod.apply_greenscreen(cfg.render.greenscreen_color)
 
     # ---- Stage 4: Per-outcome render (each cache-gated) ----
     os.makedirs(cfg.render.output_dir, exist_ok=True)
