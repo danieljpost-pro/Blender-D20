@@ -208,6 +208,37 @@ def _build_parser() -> argparse.ArgumentParser:
     g_feat.add_argument(
         "--no-dof", action="store_true", help="Disable depth of field (faster render)."
     )
+    g_feat.add_argument(
+        "--dof-fstop",
+        type=float,
+        default=None,
+        metavar="N",
+        help=(
+            "Camera aperture f-number. Low values blur the die itself: focus is "
+            "locked to the die's origin, so at f/0.95 the face numerals (~24mm "
+            "further out) fall well outside the ~4mm focal plane. Use f/8-f/11 "
+            "to hold the whole die sharp."
+        ),
+    )
+    g_feat.add_argument(
+        "--number-style",
+        choices=["decal", "inset", "raised"],
+        default=None,
+        help=(
+            "Glyph treatment. 'inset' boolean-carves the numeral into the face; "
+            "'decal' lays flat text on the surface (flattest, most readable)."
+        ),
+    )
+    g_feat.add_argument(
+        "--number-inset-depth",
+        type=float,
+        default=None,
+        metavar="M",
+        help=(
+            "Carve/extrude depth in metres for inset/raised glyphs. Larger values "
+            "deepen the trench and add side-wall shading; smaller reads flatter."
+        ),
+    )
     g_feat.add_argument("--no-rim-light", action="store_true")
     g_feat.add_argument("--no-fill-light", action="store_true")
     g_feat.add_argument(
@@ -447,6 +478,18 @@ def _apply_cli_overrides(cfg: PipelineConfig, args: argparse.Namespace) -> None:
         cfg.table.bumpers_enabled = False
     if args.no_dof:
         cfg.camera.dof_enabled = False
+    if args.dof_fstop is not None:
+        if args.dof_fstop <= 0:
+            raise SystemExit(f"--dof-fstop must be > 0, got {args.dof_fstop!r}")
+        cfg.camera.dof_fstop = args.dof_fstop
+    if args.number_style is not None:
+        cfg.die.number_style = args.number_style
+    if args.number_inset_depth is not None:
+        if args.number_inset_depth < 0:
+            raise SystemExit(
+                f"--number-inset-depth must be >= 0, got {args.number_inset_depth!r}"
+            )
+        cfg.die.number_inset_depth = args.number_inset_depth
     if args.no_rim_light:
         cfg.lighting.rim_enabled = False
     if args.no_fill_light:
