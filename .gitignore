@@ -43,5 +43,8 @@ Thumbs.db
 *.swo
 .d20_cache/*
 
+# Stage cache keys (regenerable)
+*.cache_key
+
 # Inspection blends (regenerable via --save-blend)
 *.blend
